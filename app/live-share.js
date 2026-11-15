@@ -19,7 +19,7 @@
   let token = null;
   let expiresAt = null;
   let watchId = null;          // Browser-watchPosition-ID
-  let bgWatcherId = null;      // ID des nativen Hintergrund-Watchers (Capacitor-App)
+  let uploadSecret = null;     // Schreib-Secret für den nativen Upload-Dienst (App)
   let lastPing = 0;            // Drossel: höchstens alle 3 Sek. senden
   let bannerTimer = null;
   let geoProblem = null;      // Text, falls die Ortung blockiert/fehlt
@@ -307,52 +307,44 @@
     updateBanner();
   }
 
-  // Natives Hintergrund-Standort-Plugin — nur in der Capacitor-App vorhanden.
-  // Liefert über einen Vordergrunddienst (mit Benachrichtigung) auch bei
-  // gesperrtem Display Positionen; im Browser gibt es das nicht → null.
-  let _bgPlugin; // undefined = noch nicht geprüft
-  function nativeBg() {
-    if (_bgPlugin !== undefined) return _bgPlugin;
+  // Eigenes natives LiveShare-Plugin — nur in der Capacitor-App vorhanden.
+  // Startet einen Vordergrund-Dienst, der die Position NATIV an den Server
+  // schickt (am eingefrorenen WebView-JS vorbei → läuft bei gesperrtem Display).
+  // Im Browser nicht vorhanden → null (dann watchPosition, Vordergrund-only).
+  let _livePlugin; // undefined = noch nicht geprüft
+  function nativeLive() {
+    if (_livePlugin !== undefined) return _livePlugin;
     const Cap = window.Capacitor;
     try {
-      // Zugriff über den vom nativen Bridge bereitgestellten Plugins-Proxy
-      // (wie bei Gallery). window.Capacitor.registerPlugin existiert im
-      // no-build-Kontext NICHT — deshalb lief bisher immer der watchPosition-
-      // Fallback (am Gerät per DevTools verifiziert).
-      _bgPlugin = (Cap && Cap.isNativePlatform && Cap.isNativePlatform()
-                   && Cap.Plugins && Cap.Plugins.BackgroundGeolocation)
-        ? Cap.Plugins.BackgroundGeolocation : null;
-    } catch (e) { _bgPlugin = null; }
-    return _bgPlugin;
+      _livePlugin = (Cap && Cap.isNativePlatform && Cap.isNativePlatform()
+                     && Cap.Plugins && Cap.Plugins.LiveShare)
+        ? Cap.Plugins.LiveShare : null;
+    } catch (e) { _livePlugin = null; }
+    return _livePlugin;
   }
 
   async function startWatch() {
-    if (watchId !== null || bgWatcherId !== null) return;
-    lastPing = 0;
-
-    // Bevorzugt nativer Hintergrund-Watcher (läuft bei gesperrtem Display weiter).
-    const BG = nativeBg();
-    if (BG) {
+    // Native App: nativen Upload-Dienst anwerfen (sendet selbst an den Server).
+    const LS = nativeLive();
+    if (LS) {
       try {
-        bgWatcherId = await BG.addWatcher({
-          backgroundTitle: 'Tourlocate',
-          backgroundMessage: 'Dein Standort wird gerade geteilt',
-          requestPermissions: true,
-          distanceFilter: 0
-        }, function (location, error) {
-          if (error) { onGeoError(error); return; }
-          if (location) ping({ coords: {
-            latitude: location.latitude,
-            longitude: location.longitude,
-            accuracy: location.accuracy
-          } });
-        });
-        return;
-      } catch (e) {
-        bgWatcherId = null; // Fallback auf Browser-Geolocation
-      }
+        const r = await LS.isRunning();
+        if (r && r.running) return;        // läuft schon (z. B. nach Seitenwechsel)
+        if (uploadSecret) {                // frischer Start/Resume mit Secret
+          await LS.startSharing({
+            url: new URL('api/live.php?action=push', location.href).href,
+            token: token,
+            secret: uploadSecret
+          });
+          return;
+        }
+        // Kein Secret (Resume nach Prozess-Kill) → unten watchPosition als Notnagel.
+      } catch (e) { /* Fallback unten */ }
     }
 
+    // Browser (oder Notnagel): watchPosition + JS-Ping, nur im Vordergrund.
+    if (watchId !== null) return;
+    lastPing = 0;
     if (!navigator.geolocation) return;
     watchId = navigator.geolocation.watchPosition(ping, onGeoError, {
       enableHighAccuracy: true, maximumAge: 5000, timeout: 20000
@@ -361,18 +353,15 @@
 
   async function stopWatch() {
     if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
-    if (bgWatcherId !== null) {
-      const BG = nativeBg();
-      const id = bgWatcherId;
-      bgWatcherId = null;
-      try { if (BG) await BG.removeWatcher({ id }); } catch (e) {}
-    }
+    const LS = nativeLive();
+    if (LS) { try { await LS.stopSharing(); } catch (e) {} }
   }
 
-  function begin(tok, exp, isPaused) {
+  function begin(tok, exp, isPaused, secret) {
     token = tok;
     expiresAt = exp;
     paused = !!isPaused;
+    uploadSecret = secret || null; // nur beim frischen Start vorhanden
     lastUpdateAt = null;
     showBanner();
     if (!paused) { startWatch(); requestWake(); }
@@ -405,7 +394,7 @@
 
     async start(label, ttl) {
       const d = await api('start', { label, ttl });
-      if (d.ok) begin(d.token, d.expiresAt);
+      if (d.ok) begin(d.token, d.expiresAt, false, d.uploadSecret);
       return d;
     },
 
