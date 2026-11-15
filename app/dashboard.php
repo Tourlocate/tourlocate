@@ -23,6 +23,26 @@ $csrf = csrf_token();
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Tourlocate — Meine Präsentationen</title>
 <link rel="icon" type="image/png" href="../img/logo.png">
+<script>
+// Start-Ansicht: nur beim ERSTEN Laden pro App-Start (sessionStorage-Flag)
+// gemäß Nutzer-Einstellung früh umleiten — läuft im <head>, damit das
+// Dashboard bei „Karte"/„Zuletzt" gar nicht erst aufblitzt.
+(function(){
+  try {
+    if (sessionStorage.getItem('tlStartDone')) return;
+    sessionStorage.setItem('tlStartDone', '1');
+    var sv = localStorage.getItem('tlStartView') || 'dashboard';
+    // href (nicht replace): so bleibt das Dashboard in der Historie und die
+    // Hardware-Zurück-Taste führt dorthin zurück — sonst säße man auf der Karte
+    // ohne Weg zum Konto fest.
+    if (sv === 'map') { location.href = '../index.html'; return; }
+    if (sv === 'last') {
+      var last = localStorage.getItem('tlLast');
+      if (last && last.indexOf('dashboard.php') === -1) location.href = last;
+    }
+  } catch (e) {}
+})();
+</script>
 <style>
   body{margin:0;font-family:system-ui,sans-serif;background:#f4f6f8;color:#1a1a1a}
   .bar{display:flex;align-items:center;justify-content:space-between;
@@ -77,6 +97,17 @@ $csrf = csrf_token();
 </div>
 
 <div class="wrap">
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px">
+    <a href="../index.html" id="mapBtn" class="primary"
+       style="display:inline-block;text-decoration:none">Karte</a>
+    <label style="font-size:13px;color:#555">Beim Start zeigen:
+      <select id="startViewSel" style="margin-left:4px;padding:4px 6px">
+        <option value="dashboard">Dashboard</option>
+        <option value="map">Karte</option>
+        <option value="last">Zuletzt geöffnet</option>
+      </select>
+    </label>
+  </div>
   <div class="head">
     <h1>Meine Präsentationen</h1>
     <button class="primary" id="newBtn">+ Neue Präsentation</button>
@@ -497,6 +528,16 @@ document.getElementById('livePreviewBtn').onclick = () => {
     location.href = url;
   }
 };
+
+// Start-Ansicht-Auswahl: speichern/laden (localStorage, pro Gerät).
+(function(){
+  var sel = document.getElementById('startViewSel');
+  if (!sel) return;
+  try { sel.value = localStorage.getItem('tlStartView') || 'dashboard'; } catch(e){}
+  sel.onchange = function(){ try { localStorage.setItem('tlStartView', sel.value); } catch(e){} };
+})();
+// Diese Seite als „zuletzt geöffnet" merken (für die Start-Ansicht „Zuletzt").
+try { localStorage.setItem('tlLast', location.pathname + location.search); } catch(e){}
 </script>
 </body>
 </html>

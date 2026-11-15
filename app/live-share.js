@@ -106,7 +106,7 @@
     info.style.display = 'none';
     info.innerHTML = '<span>Der Bildschirm bleibt an (kein automatisches Sperren/Dimmen). '
       + 'Bei gesperrtem Bildschirm oder App-Wechsel läuft die Aktualisierung nur in der '
-      + 'mobilen App weiter; in der Browser-Version stoppt sie und läuft weiter, sobald das '
+      + 'mobilen App weiter; in der Browser-Version stoppt sie und läuft erst weiter, wenn das '
       + 'Tourlocate-Fenster wieder aktiv ist.</span>'
       + '<button id="tlLiveWakeHide" type="button">Für diese Teilen-Session ausblenden</button>';
 
