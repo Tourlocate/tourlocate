@@ -115,6 +115,13 @@ function tl_migrate(PDO $pdo): void
     } catch (PDOException $e) {
         // Spalte existiert bereits oder Tabelle noch nicht da — ok
     }
+    // live_shares: Schreib-Secret für den nativen Upload-Dienst (App). Nur der
+    // SHA-256-Hash; der Klartext wird beim Start einmalig zurückgegeben.
+    try {
+        $pdo->exec('ALTER TABLE live_shares ADD COLUMN upload_secret TEXT');
+    } catch (PDOException $e) {
+        // Spalte existiert bereits oder Tabelle noch nicht da — ok
+    }
 
     // Audit-Log: protokolliert Admin-Zugriffe auf fremde Inhalte (wer,
     // wann, was) — Beleg für anlassbezogene statt wahlloser Einsicht.
@@ -207,10 +214,11 @@ function tl_migrate(PDO $pdo): void
     // jederzeit abschaltbar (active = 0).
     $pdo->exec(<<<'SQL'
         CREATE TABLE IF NOT EXISTS live_shares (
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            token      TEXT UNIQUE NOT NULL,
-            label      TEXT,
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            token         TEXT UNIQUE NOT NULL,
+            upload_secret TEXT,
+            label         TEXT,
             last_lat   REAL,
             last_lng   REAL,
             last_acc   REAL,

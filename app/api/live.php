@@ -60,6 +60,49 @@ if ($action === 'read') {
     json_out(live_public($row));
 }
 
+// Positions-Upload vom NATIVEN Dienst der App (läuft außerhalb der WebView,
+// hat also keine Session/Cookie). Authentifiziert per Token + Secret.
+if ($action === 'push') {
+    $input  = read_input();
+    $token  = (string) ($input['token'] ?? '');
+    $secret = (string) ($input['secret'] ?? '');
+    $lat = $input['lat'] ?? null;
+    $lng = $input['lng'] ?? null;
+    $acc = $input['acc'] ?? null;
+
+    // Fehlversuche pro IP drosseln (Token+Secret sind unerratbar; Vorsorge).
+    $ipKey = 'live-push:ip:' . tl_client_ip();
+    tl_rate_guard($ipKey);
+
+    if (!is_numeric($lat) || !is_numeric($lng)
+        || $lat < -90 || $lat > 90 || $lng < -180 || $lng > 180
+        || !preg_match('/^[a-f0-9]{64}$/', $secret)) {
+        tl_rate_fail($ipKey, 60);
+        json_error('Ungültige Anfrage.', 400);
+    }
+    $acc = is_numeric($acc) ? max(0.0, (float) $acc) : null;
+
+    $st = db()->prepare('SELECT upload_secret, active, expires_at FROM live_shares WHERE token = ?');
+    $st->execute([$token]);
+    $row = $st->fetch();
+
+    $secretOk = $row && $row['upload_secret'] !== null
+        && hash_equals((string) $row['upload_secret'], hash('sha256', $secret));
+    if (!$secretOk) {
+        tl_rate_fail($ipKey, 60);
+        json_error('Nicht autorisiert.', 403);
+    }
+    // Secret stimmt → Sitzung noch aktiv? (abgelaufen/beendet ist KEIN Fehler,
+    // der Dienst soll sich dann sauber beenden.)
+    if ((int) $row['active'] !== 1 || $row['expires_at'] <= now_iso()) {
+        json_out(['ok' => true, 'active' => false]);
+    }
+    db()->prepare(
+        'UPDATE live_shares SET last_lat = ?, last_lng = ?, last_acc = ?, last_at = ? WHERE token = ?'
+    )->execute([(float) $lat, (float) $lng, $acc, now_iso(), $token]);
+    json_out(['ok' => true, 'active' => true]);
+}
+
 // ---- Ab hier: Besitzer-Aktionen -------------------------------------
 $uid = require_login();
 
@@ -109,12 +152,18 @@ switch ($action) {
         }
 
         $token = bin2hex(random_bytes(16));
+        // Schreib-Secret für den nativen Upload-Dienst (App): unerratbare
+        // Berechtigung, Position zu dieser Sitzung zu melden — OHNE Login/Cookie.
+        // Nur der Hash wird gespeichert; der Klartext geht einmalig an den
+        // Besitzer zurück und wird dort vom nativen Dienst gehalten.
+        $uploadSecret = bin2hex(random_bytes(32));
         $pdo->prepare(
-            'INSERT INTO live_shares (user_id, token, label, expires_at, active, created_at)
-             VALUES (?, ?, ?, ?, 1, ?)'
-        )->execute([$uid, $token, $label !== '' ? $label : null, $expires, now_iso()]);
+            'INSERT INTO live_shares (user_id, token, upload_secret, label, expires_at, active, created_at)
+             VALUES (?, ?, ?, ?, ?, 1, ?)'
+        )->execute([$uid, $token, hash('sha256', $uploadSecret), $label !== '' ? $label : null, $expires, now_iso()]);
 
-        json_out(['ok' => true, 'token' => $token, 'label' => $label, 'expiresAt' => $expires]);
+        json_out(['ok' => true, 'token' => $token, 'uploadSecret' => $uploadSecret,
+                  'label' => $label, 'expiresAt' => $expires]);
     }
 
     case 'ping': {
