@@ -32,10 +32,13 @@ $csrf = csrf_token();
     if (sessionStorage.getItem('tlStartDone')) return;
     sessionStorage.setItem('tlStartDone', '1');
     var sv = localStorage.getItem('tlStartView') || 'dashboard';
-    if (sv === 'map') { location.replace('../index.html'); return; }
+    // href (nicht replace): so bleibt das Dashboard in der Historie und die
+    // Hardware-Zurück-Taste führt dorthin zurück — sonst säße man auf der Karte
+    // ohne Weg zum Konto fest.
+    if (sv === 'map') { location.href = '../index.html'; return; }
     if (sv === 'last') {
       var last = localStorage.getItem('tlLast');
-      if (last && last.indexOf('dashboard.php') === -1) location.replace(last);
+      if (last && last.indexOf('dashboard.php') === -1) location.href = last;
     }
   } catch (e) {}
 })();
