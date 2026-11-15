@@ -70,7 +70,7 @@ $canRegister = $regMode === 'open' || ($regMode === 'invite' && $inviteValid);
              placeholder="123456">
     </div>
     <label id="rememberRow" style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:6px 0">
-      <input type="checkbox" id="rememberChk"> Angemeldet bleiben
+      <input type="checkbox" id="rememberChk" style="width:auto;margin:0;flex:none"> Angemeldet bleiben
     </label>
     <button type="submit" id="submitBtn">Anmelden</button>
   </form>

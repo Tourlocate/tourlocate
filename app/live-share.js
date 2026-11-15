@@ -104,9 +104,10 @@
     const info = document.createElement('div');
     info.id = 'tlLiveWakeInfo';
     info.style.display = 'none';
-    info.innerHTML = '<span>Wake-Lock aktiv: Bildschirm wird nicht automatisch gesperrt oder gedimmt. '
-      + 'Bei Bildschirmsperre von Hand oder App-Wechsel stoppt die automatische Aktualisierung — '
-      + 'sie läuft automatisch weiter, sobald das Tourlocate-Fenster wieder aktiv ist.</span>'
+    info.innerHTML = '<span>Der Bildschirm bleibt an (kein automatisches Sperren/Dimmen). '
+      + 'Bei gesperrtem Bildschirm oder App-Wechsel läuft die Aktualisierung nur in der '
+      + 'mobilen App weiter; in der Browser-Version stoppt sie und läuft weiter, sobald das '
+      + 'Tourlocate-Fenster wieder aktiv ist.</span>'
       + '<button id="tlLiveWakeHide" type="button">Für diese Teilen-Session ausblenden</button>';
 
     wrap.appendChild(b);

@@ -224,7 +224,7 @@ let __toastEl = null, __toastTimer = null;
 function showToast(text, { actionLabel = '', onAction = null, ms = 4000 } = {}) {
   if (!__toastEl) {
     __toastEl = document.createElement('div');
-    __toastEl.style.cssText = 'position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:10001;'
+    __toastEl.style.cssText = 'position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom, 0px) + 84px);transform:translateX(-50%);z-index:10001;'
       + 'max-width:90vw;display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;'
       + 'background:rgba(30,30,30,.94);color:#fff;font:500 14px/1.3 system-ui,sans-serif;'
       + 'box-shadow:0 2px 12px rgba(0,0,0,.35)';
