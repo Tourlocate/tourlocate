@@ -477,12 +477,25 @@ document.getElementById('liveShareBtn').onclick = async () => {
   catch (e) { /* Nutzer hat abgebrochen — ignorieren */ }
 };
 
-// Dieselbe Ansicht wie der Empfänger (mit Zurück-Link). Hinweis: Während
-// man hier ist, pausiert das Senden der eigenen Position — beim Zurück
-// kehren zum Dashboard läuft es automatisch wieder an.
+// Dieselbe Ansicht wie der Empfänger (mit Zurück-Link).
+// - In der nativen App: im SYSTEM-Browser öffnen (LiveShare.openExternal) —
+//   die App bleibt auf der Teilen-Seite, der native Upload-Dienst sendet
+//   weiter, und der Eigencheck zeigt die echten Live-Updates.
+// - Im Browser: wie bisher in derselben Seite navigieren. Hinweis: Dort
+//   pausiert währenddessen das Senden der eigenen Position — beim Zurück-
+//   kehren zum Dashboard läuft es automatisch wieder an.
 document.getElementById('livePreviewBtn').onclick = () => {
   const st = TLLiveShare.getState();
-  if (st.active) location.href = TLLiveShare.urlFor(st.token) + '&preview=1';
+  if (!st.active) return;
+  const url = TLLiveShare.urlFor(st.token) + '&preview=1';
+  const Cap = window.Capacitor;
+  const LS = Cap && Cap.isNativePlatform && Cap.isNativePlatform()
+    && Cap.Plugins && Cap.Plugins.LiveShare;
+  if (LS && LS.openExternal) {
+    LS.openExternal({ url }).catch(() => { location.href = url; });
+  } else {
+    location.href = url;
+  }
 };
 </script>
 </body>
