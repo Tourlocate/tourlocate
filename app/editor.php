@@ -30,6 +30,8 @@ $csrf = csrf_token();
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder/dist/Control.Geocoder.css">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="icon" type="image/png" href="../img/logo.png">
+  <script>/* für Start-Ansicht „Zuletzt": diese Seite merken */
+    try { localStorage.setItem('tlLast', location.pathname + location.search); } catch(e){}</script>
 
   <style>
     html, body { height: 100%; margin: 0; }
@@ -53,6 +55,14 @@ $csrf = csrf_token();
     /* Menü-Knopf unter die Editor-Kopfleiste, damit er den
        "‹ Übersicht"-Link oben links nicht verdeckt */
     #sidebarToggle { top:56px; }
+    /* Schmale Geräte (App): Titel-Eingabe in eine eigene Zeile, damit
+       „Speichern" im Bild bleibt und der Titel nicht zum winzigen Rahmen
+       neben dem Logo zusammengequetscht wird. Statuszeile schrumpfbar. */
+    @media (max-width: 560px){
+      #tl-editbar{ flex-wrap:wrap; gap:8px; }
+      #titleInput{ order:5; flex:1 1 100%; }
+      #saveStatus{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; text-align:right; }
+    }
   </style>
 </head>
 <body>
