@@ -90,6 +90,8 @@ $canRegister = $regMode === 'open' || ($regMode === 'invite' && $inviteValid);
   <div style="margin-top:16px;text-align:center;font-size:12px">
     <a href="impressum.php" style="color:#889">Impressum</a> ·
     <a href="datenschutz.php" style="color:#889">Datenschutz</a>
+    <span id="serverSwitchWrap" style="display:none"> ·
+      <a id="serverSwitchLink" style="color:#889;cursor:pointer">Server wechseln</a></span>
   </div>
 </div>
 
@@ -145,6 +147,22 @@ if (switchLink) switchLink.onclick = () => setMode('register');
 if (CAN_REGISTER && INVITE_TOKEN) setMode('register');
 
 let awaiting2fa = false;
+
+// Nur in der nativen App mit Server-Picker: zurück zur Server-Auswahl.
+// (Löscht die gespeicherte Instanz-Wahl auf dem Gerät und startet die
+// App-Oberfläche neu — Konten/Daten auf dem Server bleiben unberührt.)
+(function () {
+  const Cap = window.Capacitor;
+  const SC = Cap && Cap.isNativePlatform && Cap.isNativePlatform()
+    && Cap.Plugins && Cap.Plugins.ServerConfig;
+  if (!SC) return;
+  document.getElementById('serverSwitchWrap').style.display = '';
+  document.getElementById('serverSwitchLink').onclick = () => {
+    if (confirm('Verbindung zu diesem Server trennen und einen anderen wählen?')) {
+      SC.clear();
+    }
+  };
+})();
 
 // ---- Passwort vergessen ----
 document.getElementById('forgotLink').onclick = () => {
