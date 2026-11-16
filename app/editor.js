@@ -8,9 +8,12 @@ import { setupPOIs, createPoi, renumberAndRoute } from '../js/map-pois.js';
 import { setupUI } from '../js/map-ui.js';
 import { setupIO } from '../js/map-io.js';
 import { getSetting, setSetting } from '../js/map-settings.js';
-import { fileToTargetJpeg } from '../js/map-utils.js';
+import { fileToTargetJpeg, dataURLToBytes } from '../js/map-utils.js';
 
-const { pid, csrf } = window.TL_EDITOR;
+// pid ist wandelbar: im „Neu"-Modus (?new=1) wird die Präsentation erst beim
+// Speichern/Übernehmen angelegt und die id dann hier eingetragen.
+let pid = window.TL_EDITOR.pid;
+const { csrf, isNew } = window.TL_EDITOR;
 const $ = id => document.getElementById(id);
 
 // ---- Upload-Hook: Datei → ~200-KB-JPEG → Server → URL -----------------
@@ -103,6 +106,80 @@ async function save(map) {
   const data = await res.json().catch(() => ({}));
   if (data.ok) { markSaved(); document.title = 'Tourlocate — ' + data.title; }
   else setStatus(data.error || 'Speichern fehlgeschlagen.', true);
+}
+
+// ---- „Neu": Übernahme aus der freien Karte --------------------------
+// Legt (falls noch nicht geschehen) die Präsentation an und trägt die id in
+// das modulweite `pid` ein — danach greifen Upload/Speichern wie gewohnt.
+async function ensurePid(title) {
+  if (pid) return pid;
+  const res = await fetch('api/presentations.php?action=create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+    body: JSON.stringify({ title: title || '', csrf })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!data.ok) throw new Error(data.error || 'Anlegen fehlgeschlagen.');
+  pid = data.id;
+  return pid;
+}
+
+// Stationen mit Base64-Bild (aus der Karten-Übergabe) auf den Server laden
+// und das Bild durch die Server-URL ersetzen. Braucht ein bestehendes pid.
+async function uploadBase64Images(map) {
+  const pending = map.state.pois.filter(p => p.img && p.img.startsWith('data:'));
+  let n = 0;
+  for (const p of pending) {
+    n++;
+    setStatus('Bild ' + n + '/' + pending.length + ' wird übertragen…');
+    const bytes = dataURLToBytes(p.img);
+    const file = new File([bytes], 'foto.jpg', { type: 'image/jpeg' });
+    p.img = await imageStore(file, { lat: p.lat, lng: p.lng, date: p.createdAt });
+  }
+}
+
+async function initNewPresentation(map) {
+  const raw = sessionStorage.getItem('tlHandoff');
+  if (!raw) { markSaved(); return; }   // leerer neuer Editor (ohne Übergabe)
+  sessionStorage.removeItem('tlHandoff');
+
+  let hand;
+  try { hand = JSON.parse(raw); } catch { markSaved(); return; }
+
+  // Titel + Verbindungs-/Profil-Einstellungen übernehmen
+  $('titleInput').value = hand.title || '';
+  if (hand.line_mode) {
+    setSetting('lineMode', hand.line_mode);
+    if ($('lineModeSel')) $('lineModeSel').value = hand.line_mode;
+  }
+  if (hand.profile) {
+    setSetting('profile', hand.profile);
+    if ($('profileSel')) {
+      $('profileSel').value = hand.profile;
+      $('profileSel').disabled = hand.line_mode !== 'route';
+    }
+  }
+
+  // Stationen anlegen (Bilder zunächst als Base64)
+  const pois = Array.isArray(hand.pois) ? hand.pois : [];
+  pois.forEach(sp => createPoi(map, {
+    lat: sp.lat, lng: sp.lng,
+    name: sp.name || '', link: sp.link || '', linkText: sp.linkText || '',
+    img: sp.img || '', createdAt: sp.createdAt || ''
+  }));
+  renumberAndRoute(map);
+  if (pois.length) fitToMarkers(map);
+
+  // Anlegen → Bilder hochladen → speichern → sauberer Reload mit Server-URLs
+  try {
+    setStatus('Präsentation wird angelegt…');
+    await ensurePid($('titleInput').value);
+    await uploadBase64Images(map);
+    await save(map);
+    location.replace('editor.php?id=' + pid);
+  } catch (e) {
+    setStatus('Übernahme fehlgeschlagen: ' + (e?.message || e), true);
+  }
 }
 
 // ---- Status/Dirty-Anzeige -------------------------------------------
@@ -264,9 +341,19 @@ window.addEventListener('DOMContentLoaded', () => {
   const prevHook = map.onPoisChanged;
   map.onPoisChanged = () => { prevHook?.(); markDirty(); };
 
-  loadPresentation(map);
+  if (isNew) initNewPresentation(map);
+  else loadPresentation(map);
 
-  $('saveBtn').onclick = () => save(map);
+  // Im „Neu"-Modus ohne Übergabe erst beim Speichern die Präsentation anlegen.
+  $('saveBtn').onclick = async () => {
+    try { await ensurePid($('titleInput').value); }
+    catch (e) { setStatus('Anlegen fehlgeschlagen: ' + (e?.message || e), true); return; }
+    await save(map);
+    // URL sauber machen, damit ein Reload die angelegte Präsentation lädt.
+    if (isNew && pid && location.search.indexOf('id=') === -1) {
+      history.replaceState(null, '', 'editor.php?id=' + pid);
+    }
+  };
   $('titleInput').oninput = markDirty;
   setupShare();
   setupWebdavConn();

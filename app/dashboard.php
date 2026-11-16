@@ -35,7 +35,7 @@ $csrf = csrf_token();
     // href (nicht replace): so bleibt das Dashboard in der Historie und die
     // Hardware-Zurück-Taste führt dorthin zurück — sonst säße man auf der Karte
     // ohne Weg zum Konto fest.
-    if (sv === 'map') { location.href = '../index.html'; return; }
+    if (sv === 'map') { location.href = '../index.html?app=1'; return; }
     if (sv === 'last') {
       var last = localStorage.getItem('tlLast');
       if (last && last.indexOf('dashboard.php') === -1) location.href = last;
@@ -98,7 +98,7 @@ $csrf = csrf_token();
 
 <div class="wrap">
   <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px">
-    <a href="../index.html" id="mapBtn" class="primary"
+    <a href="../index.html?app=1" id="mapBtn" class="primary"
        style="display:inline-block;text-decoration:none">Karte</a>
     <label style="font-size:13px;color:#555">Beim Start zeigen:
       <select id="startViewSel" style="margin-left:4px;padding:4px 6px">

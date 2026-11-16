@@ -26,9 +26,46 @@
     html, body { height: 100%; margin: 0; }
     body { display: flex; flex-direction: row; }
     #map { flex: 1 1 auto; min-width: 0; height: 100%; }
+
+    /* App-Kopfleiste: nur wenn die Karte aus der Multi-User-App geöffnet
+       wurde (Body bekommt dann per JS die Klasse .tl-app). Als fixe Leiste
+       oben, damit die bestehende Flex-Zeile (Seitenleiste/Karte) unverändert
+       bleibt — der Platz wird über padding-top am Body geschaffen. */
+    #tl-app-bar { display: none; }
+    body.tl-app { padding-top: 52px; box-sizing: border-box; }
+    body.tl-app #tl-app-bar {
+      display: flex; align-items: center; gap: 10px;
+      position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 1300;
+      padding: 0 12px; background: #fff; border-bottom: 1px solid #e2e8f0;
+      box-sizing: border-box;
+    }
+    #tl-app-bar .back {
+      text-decoration: none; color: #2b6cb0; font-weight: 600; white-space: nowrap;
+    }
+    #tl-app-bar input {
+      flex: 1 1 auto; min-width: 0; padding: 7px 10px;
+      border: 1px solid #cbd2d9; border-radius: 7px; font: inherit;
+    }
+    #tl-app-bar button {
+      flex: 0 0 auto; padding: 8px 14px; border: 1px solid #2b6cb0;
+      border-radius: 7px; background: #2b6cb0; color: #fff; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+    }
+    /* Menü-Knopf und die mobil überlagernde Seitenleiste unter die Leiste. */
+    body.tl-app #sidebarToggle { top: 62px; }
+    @media (max-width: 720px) {
+      body.tl-app #sidebar { top: 52px; }
+    }
   </style>
 </head>
 <body>
+  <!-- Kopfleiste nur im App-Kontext (?app=1) — per JS eingeblendet -->
+  <div id="tl-app-bar">
+    <a class="back" href="app/dashboard.php" title="Zurück zur Übersicht">‹ Übersicht</a>
+    <input id="tlAppTitle" type="text" placeholder="Präsentation aus dieser Ansicht erstellen">
+    <button id="tlAppCreate">Erstellen</button>
+  </div>
+
   <!-- Menü-Knopf (sichtbar, wenn die Seitenleiste zu ist) -->
   <button id="sidebarToggle" title="Menü">☰</button>
 

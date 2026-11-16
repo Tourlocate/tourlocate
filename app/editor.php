@@ -9,12 +9,18 @@ if ($uid === null) {
     header('Location: index.php');
     exit;
 }
+// „Neu" (?new=1): leerer Editor ohne vorhandene Präsentation — angelegt wird
+// erst beim Speichern (bzw. bei der Übernahme aus der freien Karte). Sonst:
+// bestehende Präsentation, die dem Nutzer gehören muss.
+$isNew = isset($_GET['new']);
 $pid = (int) ($_GET['id'] ?? 0);
-$st = db()->prepare('SELECT id FROM presentations WHERE id = ? AND user_id = ?');
-$st->execute([$pid, $uid]);
-if (!$st->fetch()) {
-    header('Location: dashboard.php');
-    exit;
+if (!$isNew) {
+    $st = db()->prepare('SELECT id FROM presentations WHERE id = ? AND user_id = ?');
+    $st->execute([$pid, $uid]);
+    if (!$st->fetch()) {
+        header('Location: dashboard.php');
+        exit;
+    }
 }
 $csrf = csrf_token();
 ?>
@@ -55,13 +61,21 @@ $csrf = csrf_token();
     /* Menü-Knopf unter die Editor-Kopfleiste, damit er den
        "‹ Übersicht"-Link oben links nicht verdeckt */
     #sidebarToggle { top:56px; }
-    /* Schmale Geräte (App): Titel-Eingabe in eine eigene Zeile, damit
-       „Speichern" im Bild bleibt und der Titel nicht zum winzigen Rahmen
-       neben dem Logo zusammengequetscht wird. Statuszeile schrumpfbar. */
+    /* Schmale Geräte (App): „‹ Übersicht", Status, „Teilen" und „Speichern"
+       bleiben in EINER Zeile — nur die Titel-Eingabe rutscht in eine eigene
+       Zeile darunter. Das Logo-Rähmchen entfällt hier (sonst quetscht es den
+       Titel), die Statuszeile schrumpft. So bricht „Speichern" nicht mehr in
+       eine zweite Zeile um und wird nicht abgeschnitten. */
     @media (max-width: 560px){
-      #tl-editbar{ flex-wrap:wrap; gap:8px; }
+      #tl-editbar{ flex-wrap:wrap; gap:8px; padding:8px 10px; }
+      #tl-editbar .brand-img{ display:none; }
       #titleInput{ order:5; flex:1 1 100%; }
-      #saveStatus{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; text-align:right; }
+      #saveStatus{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis;
+                   white-space:nowrap; text-align:right; }
+      #shareBtn, #saveBtn{ padding:7px 10px; white-space:nowrap; }
+      /* Kopfleiste ist jetzt zweizeilig (Steuerzeile + Titelzeile) → Menü-
+         Knopf tiefer setzen, damit er die Titel-Eingabe nicht überlappt. */
+      #sidebarToggle{ top:96px; }
     }
   </style>
 </head>
@@ -254,7 +268,7 @@ $csrf = csrf_token();
   <input type="file" id="fileGeo" accept=".geojson,.json,application/geo+json,application/json" hidden>
   <input type="file" id="fileGpx"  accept=".gpx,application/gpx+xml,application/xml" hidden>
 
-  <script>window.TL_EDITOR = { pid: <?= $pid ?>, csrf: <?= json_encode($csrf) ?> };</script>
+  <script>window.TL_EDITOR = { pid: <?= $pid ?>, csrf: <?= json_encode($csrf) ?>, isNew: <?= $isNew ? 'true' : 'false' ?> };</script>
 
   <!-- Live-Standort-Hinweis: zeigt überall an, dass gerade geteilt wird,
        und hält die Ortung beim Seitenwechsel am Laufen -->
