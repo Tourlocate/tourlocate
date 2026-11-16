@@ -2,7 +2,8 @@
 // WebDAV-Dauerverbindung einer Präsentation verwalten (Besitzer).
 //   GET  api/webdav.php?action=status&presentation_id=…
 //   POST api/webdav.php?action=save    {presentation_id,url,username,password}
-//   POST api/webdav.php?action=test    {presentation_id}   → PROPFIND-Probe
+//   POST api/webdav.php?action=test    {presentation_id[,url,username,password]} → PROPFIND-Probe
+//   POST api/webdav.php?action=sync    {presentation_id}   → sofort bis zu 10 Bilder importieren
 //   POST api/webdav.php?action=delete  {presentation_id}
 //
 // Das App-Passwort wird mit sodium_crypto_secretbox verschlüsselt
@@ -146,6 +147,24 @@ switch ($action) {
         }
         $images = tl_dav_list_images($res['body'], $url);
         json_out(['ok' => true, 'imageCount' => count($images)]);
+        break;
+
+    case 'sync':
+        // „Jetzt abrufen": einen Import-Lauf sofort ausführen (gleicher Kern
+        // wie der Cron, aber nur 10 Bilder pro Aufruf, damit der Request kurz
+        // bleibt — der Browser ruft wiederholt auf, bis remaining 0 ist).
+        $c = conn_for($uid, $pid);
+        if (!$c) {
+            json_error('Keine Verbindung hinterlegt — bitte erst speichern.');
+        }
+        require_once __DIR__ . '/webdav-sync.php';
+        $r = tl_webdav_sync($c, 10);
+        if (!$r['ok']) {
+            json_error($r['error'], 502);
+        }
+        json_out(['ok' => true, 'imported' => $r['imported'], 'skipped' => $r['skipped'],
+                  'remaining' => $r['remaining'], 'limitReached' => $r['limitReached'],
+                  'error' => $r['error']]);
         break;
 
     case 'delete':

@@ -340,6 +340,43 @@ function setupWebdavConn() {
     if (s.ok) { $('wcUrl').value = ''; $('wcUser').value = ''; $('wcPass').value = ''; render(s); }
     else status(s.error || 'Fehler.', true);
   };
+
+  // „Jetzt abrufen": Import sofort anstoßen. Der Server verarbeitet pro
+  // Aufruf höchstens 10 Bilder (kurze Requests) — hier so lange nachfassen,
+  // bis nichts mehr übrig ist. Danach Seite neu laden, damit die neuen
+  // Stationen auf der Karte erscheinen (nur wenn nichts ungespeichert ist).
+  $('wcSyncBtn').onclick = async () => {
+    const btn = $('wcSyncBtn');
+    btn.disabled = true;
+    let imported = 0, skipped = 0;
+    try {
+      for (let round = 0; round < 60; round++) {
+        status('Rufe ab… (' + imported + ' importiert' + (skipped ? ', ' + skipped + ' übersprungen' : '') + ')');
+        const s = await api('sync', {});
+        if (!s.ok) { status(s.error || 'Abruf fehlgeschlagen.', true); return; }
+        imported += s.imported; skipped += s.skipped;
+        if (s.limitReached) { status(s.error || 'Bild-Limit erreicht.', true); break; }
+        if (s.remaining <= 0) break;
+        if (s.imported + s.skipped === 0) {
+          // Kein Fortschritt mehr (Rest nicht ladbar?) → nicht endlos weiter
+          status('Abruf unvollständig — ' + s.remaining + ' Datei(en) nicht ladbar. '
+            + imported + ' importiert, ' + skipped + ' übersprungen.', true);
+          return;
+        }
+      }
+      status(imported + ' Bild(er) importiert, ' + skipped + ' übersprungen (kein GPS/kein JPEG).');
+      if (imported > 0) {
+        if (dirty) {
+          status(imported + ' Bild(er) importiert — bitte erst speichern und dann die '
+            + 'Seite neu laden, um die neuen Stationen zu sehen.');
+        } else {
+          setTimeout(() => location.reload(), 1200);
+        }
+      }
+    } finally {
+      btn.disabled = false;
+    }
+  };
 }
 
 // ---- Start -----------------------------------------------------------
