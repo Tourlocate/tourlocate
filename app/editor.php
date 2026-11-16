@@ -48,11 +48,13 @@ $csrf = csrf_token();
     }
     #tl-editbar .back{ text-decoration:none; color:#2b6cb0; font-weight:600; white-space:nowrap; }
     #tl-editbar .brand-img{ width:28px; height:28px; border-radius:50%; }
-    #titleInput{
-      flex:1 1 auto; min-width:0; padding:7px 10px; border:1px solid #cbd2d9;
-      border-radius:7px; font:inherit; font-weight:600;
-    }
-    #saveStatus{ font-size:13px; color:#4a5568; white-space:nowrap; }
+    /* Titel wird nicht hier bearbeitet (Umbenennen gibt es im Dashboard) —
+       das Eingabefeld bleibt nur unsichtbar im DOM, weil editor.js den Wert
+       beim Laden/Speichern weiter nutzt. */
+    #titleInput{ display:none; }
+    /* Status füllt die Mitte und schiebt die Buttons nach rechts */
+    #saveStatus{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis;
+                 white-space:nowrap; text-align:right; font-size:13px; color:#4a5568; }
     #saveBtn{ background:#2b6cb0; color:#fff; border-color:#2b6cb0; font-weight:600; }
     #tl-main{ flex:1 1 auto; display:flex; flex-direction:row; min-height:0; }
     #map{ flex:1 1 auto; min-width:0; height:100%; }
@@ -61,21 +63,12 @@ $csrf = csrf_token();
     /* Menü-Knopf unter die Editor-Kopfleiste, damit er den
        "‹ Übersicht"-Link oben links nicht verdeckt */
     #sidebarToggle { top:56px; }
-    /* Schmale Geräte (App): „‹ Übersicht", Status, „Teilen" und „Speichern"
-       bleiben in EINER Zeile — nur die Titel-Eingabe rutscht in eine eigene
-       Zeile darunter. Das Logo-Rähmchen entfällt hier (sonst quetscht es den
-       Titel), die Statuszeile schrumpft. So bricht „Speichern" nicht mehr in
-       eine zweite Zeile um und wird nicht abgeschnitten. */
+    /* Schmale Geräte (App): alles bleibt in EINER Zeile — Logo weglassen,
+       Buttons kompakter, Status schrumpft mit Ellipse. */
     @media (max-width: 560px){
-      #tl-editbar{ flex-wrap:wrap; gap:8px; padding:8px 10px; }
+      #tl-editbar{ gap:8px; padding:8px 10px; }
       #tl-editbar .brand-img{ display:none; }
-      #titleInput{ order:5; flex:1 1 100%; }
-      #saveStatus{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis;
-                   white-space:nowrap; text-align:right; }
       #shareBtn, #saveBtn{ padding:7px 10px; white-space:nowrap; }
-      /* Kopfleiste ist jetzt zweizeilig (Steuerzeile + Titelzeile) → Menü-
-         Knopf tiefer setzen, damit er die Titel-Eingabe nicht überlappt. */
-      #sidebarToggle{ top:96px; }
     }
   </style>
 </head>
