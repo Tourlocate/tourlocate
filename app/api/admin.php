@@ -109,12 +109,13 @@ switch ($action) {
         break;
 
     case 'legal':
-        // Rechtstexte (Impressum/Datenschutz) liegen in app_settings (DB,
-        // im persistenten Volume) → überleben jeden Deploy.
+        // Rechtstexte (Impressum/Datenschutz/Serverregeln) liegen in
+        // app_settings (DB, im persistenten Volume) → überleben jeden Deploy.
         json_out([
-            'ok'          => true,
-            'impressum'   => tl_setting('impressum_html', ''),
-            'datenschutz' => tl_setting('datenschutz_html', ''),
+            'ok'           => true,
+            'impressum'    => tl_setting('impressum_html', ''),
+            'datenschutz'  => tl_setting('datenschutz_html', ''),
+            'serverregeln' => tl_setting('serverregeln_html', ''),
         ]);
         break;
 
@@ -280,9 +281,11 @@ switch ($action) {
         // Vertrauensstufe, wird auf den öffentlichen Seiten roh gerendert).
         $imp = tl_str_limit((string) ($input['impressum'] ?? ''), 20000);
         $dat = tl_str_limit((string) ($input['datenschutz'] ?? ''), 20000);
+        $reg = tl_str_limit((string) ($input['serverregeln'] ?? ''), 20000);
         tl_setting_set('impressum_html', $imp);
         tl_setting_set('datenschutz_html', $dat);
-        tl_audit($aid, 'edit_legal', null, null, 'Impressum/Datenschutz bearbeitet');
+        tl_setting_set('serverregeln_html', $reg);
+        tl_audit($aid, 'edit_legal', null, null, 'Impressum/Datenschutz/Serverregeln bearbeitet');
         json_out(['ok' => true]);
         break;
 
