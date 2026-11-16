@@ -72,6 +72,11 @@ $canRegister = $regMode === 'open' || ($regMode === 'invite' && $inviteValid);
     <label id="rememberRow" style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:6px 0">
       <input type="checkbox" id="rememberChk" style="width:auto;margin:0;flex:none"> Angemeldet bleiben
     </label>
+    <!-- Nur im Registrieren-Modus sichtbar; Pflicht (required + Server-Prüfung) -->
+    <label id="rulesRow" style="display:none;align-items:center;gap:8px;font-weight:normal;margin:6px 0">
+      <input type="checkbox" id="rulesChk" style="width:auto;margin:0;flex:none">
+      <span>Ich akzeptiere die <a href="serverregeln.php" target="_blank" rel="noopener">Serverregeln</a></span>
+    </label>
     <button type="submit" id="submitBtn">Anmelden</button>
   </form>
   <div class="switch" id="switchLine">
@@ -89,7 +94,8 @@ $canRegister = $regMode === 'open' || ($regMode === 'invite' && $inviteValid);
   <div class="msg" id="msg"></div>
   <div style="margin-top:16px;text-align:center;font-size:12px">
     <a href="impressum.php" style="color:#889">Impressum</a> ·
-    <a href="datenschutz.php" style="color:#889">Datenschutz</a>
+    <a href="datenschutz.php" style="color:#889">Datenschutz</a> ·
+    <a href="serverregeln.php" style="color:#889">Serverregeln</a>
     <span id="serverSwitchWrap" style="display:none"> ·
       <a id="serverSwitchLink" style="color:#889;cursor:pointer">Server wechseln</a></span>
   </div>
@@ -113,8 +119,14 @@ if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.is
   rememberChk.checked = true;
 }
 
+const rulesRow = document.getElementById('rulesRow');
+const rulesChk = document.getElementById('rulesChk');
+
 function setMode(m) {
   mode = m;
+  // Serverregeln-Häkchen nur bei der Registrierung (dort Pflicht)
+  rulesRow.style.display = (m === 'register') ? 'flex' : 'none';
+  rulesChk.required = (m === 'register');
   if (m === 'login') {
     title.textContent = 'Anmelden';
     submitBtn.textContent = 'Anmelden';
@@ -209,6 +221,7 @@ document.getElementById('authForm').addEventListener('submit', async (e) => {
       ? { code: document.getElementById('totpCode').value.trim(), csrf: CSRF }
       : { email: document.getElementById('email').value, password: pwInput.value, csrf: CSRF,
           remember: rememberChk.checked,
+          rules: (mode === 'register' ? rulesChk.checked : undefined),
           invite: (mode === 'register' ? INVITE_TOKEN : undefined) };
     const res = await fetch('api/auth.php?action=' + action, {
       method: 'POST',

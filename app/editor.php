@@ -247,6 +247,8 @@ $csrf = csrf_token();
       <div class="sb-foot">
         <button id="fullscreenBtn" data-i18n="fullscreen">Vollbild</button>
         <button id="helpBtn" data-i18n="help">Hilfe</button>
+        <a href="hilfe.php" target="_blank" rel="noopener"
+           style="flex:1 1 auto;text-align:center;padding:6px 8px;border:1px solid #ccc;border-radius:6px;background:#fff;color:inherit;text-decoration:none">Anleitung</a>
       </div>
     </aside>
 

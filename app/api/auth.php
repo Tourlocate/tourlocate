@@ -212,6 +212,12 @@ function register(array $input): void
         }
     }
 
+    // Serverregeln müssen ausdrücklich akzeptiert werden (Pflicht-Häkchen im
+    // Formular; hier serverseitig erzwungen, damit es nicht umgehbar ist).
+    if (empty($input['rules'])) {
+        json_error('Bitte akzeptiere die Serverregeln (Häkchen setzen).');
+    }
+
     $email = trim(strtolower((string) ($input['email'] ?? '')));
     $pass  = (string) ($input['password'] ?? '');
 

@@ -91,6 +91,7 @@ $csrf = csrf_token();
   </div>
   <div>
     <span class="who"><?= htmlspecialchars($email, ENT_QUOTES) ?></span>
+    <a href="hilfe.php" style="margin-right:10px;color:#2b6cb0">Hilfe</a>
     <?php if ($isAdmin): ?><a href="admin.php" style="margin-right:10px;color:#2b6cb0">Administration</a><?php endif; ?>
     <button id="logoutBtn">Abmelden</button>
   </div>

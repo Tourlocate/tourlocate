@@ -158,10 +158,11 @@ $csrf = csrf_token();
     <span id="mailMsg" style="font-size:13px"></span>
   </div>
 
-  <h2 style="margin-top:28px">Rechtstexte (Impressum &amp; Datenschutz)</h2>
+  <h2 style="margin-top:28px">Rechtstexte (Impressum, Datenschutz &amp; Serverregeln)</h2>
   <p style="font-size:13px;color:#667;margin:0 0 10px">Diese Texte werden in der Datenbank gespeichert
   und bleiben bei einem Neu-Deploy erhalten. HTML ist erlaubt (z. B. &lt;h2&gt;, &lt;p&gt;, &lt;a&gt;, &lt;ul&gt;/&lt;li&gt;).
-  Leer lassen zeigt wieder die Platzhalter-Vorlage. Die Überschrift und die Fußzeilen-Links setzt die Seite selbst.</p>
+  Leer lassen zeigt wieder die Platzhalter-Vorlage (bei den Serverregeln: das eingebaute
+  Standard-Regelwerk). Die Überschrift und die Fußzeilen-Links setzt die Seite selbst.</p>
   <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">
     <label style="font-size:13px;font-weight:600">Impressum (<a href="impressum.php" target="_blank" rel="noopener">ansehen</a>)</label>
     <textarea id="legalImpressum" rows="8" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #cbd2d9;border-radius:7px;font:13px/1.45 ui-monospace,monospace"></textarea>
@@ -169,6 +170,10 @@ $csrf = csrf_token();
   <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px">
     <label style="font-size:13px;font-weight:600">Datenschutzerklärung (<a href="datenschutz.php" target="_blank" rel="noopener">ansehen</a>)</label>
     <textarea id="legalDatenschutz" rows="10" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #cbd2d9;border-radius:7px;font:13px/1.45 ui-monospace,monospace"></textarea>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px">
+    <label style="font-size:13px;font-weight:600">Serverregeln (<a href="serverregeln.php" target="_blank" rel="noopener">ansehen</a>) — werden bei der Registrierung akzeptiert</label>
+    <textarea id="legalServerregeln" rows="10" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #cbd2d9;border-radius:7px;font:13px/1.45 ui-monospace,monospace"></textarea>
   </div>
   <div style="display:flex;align-items:center;gap:10px">
     <button id="legalSaveBtn">Rechtstexte speichern</button>
@@ -416,13 +421,15 @@ async function loadLegal() {
   if (!s.ok) return;
   document.getElementById('legalImpressum').value = s.impressum || '';
   document.getElementById('legalDatenschutz').value = s.datenschutz || '';
+  document.getElementById('legalServerregeln').value = s.serverregeln || '';
 }
 document.getElementById('legalSaveBtn').onclick = async () => {
   const saved = document.getElementById('legalSaved');
   saved.style.color = '#1e7d34'; saved.textContent = '';
   const s = await api('setlegal', {
     impressum: document.getElementById('legalImpressum').value,
-    datenschutz: document.getElementById('legalDatenschutz').value
+    datenschutz: document.getElementById('legalDatenschutz').value,
+    serverregeln: document.getElementById('legalServerregeln').value
   });
   if (s.ok) { saved.textContent = 'Gespeichert ✓'; setTimeout(() => { saved.textContent=''; }, 2500); }
   else { saved.style.color = '#c0392b'; saved.textContent = s.error || 'Fehler.'; }
