@@ -28,6 +28,15 @@ if (!$st->fetch()) {
     json_error('Präsentation nicht gefunden.', 404);
 }
 
+// Obergrenze pro Präsentation (gleicher Wert wie beim Cloud-Import —
+// Überlastungsschutz, siehe max_images_per_presentation in der config)
+$imgLimit = (int) (tl_config()['max_images_per_presentation'] ?? 500);
+$st = db()->prepare('SELECT COUNT(*) FROM images WHERE presentation_id = ?');
+$st->execute([$pid]);
+if ((int) $st->fetchColumn() >= $imgLimit) {
+    json_error('Bild-Limit erreicht (max. ' . $imgLimit . ' Bilder pro Präsentation).', 409);
+}
+
 $f = $_FILES['image'] ?? null;
 if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
     json_error('Keine Bilddatei empfangen.');

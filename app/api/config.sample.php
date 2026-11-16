@@ -26,6 +26,11 @@ return [
     // Maximale Upload-Größe pro Bild in Bytes (Standard 20 MB).
     'max_upload_bytes' => 20 * 1024 * 1024,
 
+    // Maximale Anzahl Bilder pro Präsentation (Upload UND Cloud-Import).
+    // Schützt vor versehentlich verknüpften Riesen-Ordnern bzw. Speicher-
+    // Überlastung; bei ~200 KB pro Bild sind 500 Bilder ≈ 100 MB.
+    'max_images_per_presentation' => 500,
+
     // Wird das Cookie nur über HTTPS gesendet? Im Produktivbetrieb true,
     // für lokale Tests ohne TLS ggf. false.
     'cookie_secure' => true,

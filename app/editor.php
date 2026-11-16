@@ -213,7 +213,7 @@ $csrf = csrf_token();
 
       <details class="sb-sec" id="secWebdavConn">
         <summary>Cloud-Ordner (automatisch)</summary>
-        <p class="sb-hint" style="margin:6px 0">Neue Fotos aus einem WebDAV-/Nextcloud-Ordner werden automatisch als Stationen ergänzt (alle paar Minuten). Bitte ein <strong>App-Passwort</strong> verwenden, kein Konto-Passwort — es wird verschlüsselt auf dem Server gespeichert.</p>
+        <p class="sb-hint" style="margin:6px 0">Neue Fotos aus einem WebDAV-/Nextcloud-Ordner werden automatisch als Stationen ergänzt (alle paar Minuten, auch die beim Verbinden schon vorhandenen; Unterordner werden nicht durchsucht). Mit <strong>„Jetzt abrufen"</strong> startet der Import sofort. Bitte ein <strong>App-Passwort</strong> verwenden, kein Konto-Passwort — es wird verschlüsselt auf dem Server gespeichert.</p>
         <label class="sb-field-col"><span>Ordner-URL:</span>
           <input id="wcUrl" type="url" placeholder="https://cloud.example.org/remote.php/dav/files/USER/Ordner/">
         </label>
@@ -227,6 +227,9 @@ $csrf = csrf_token();
           <button id="wcSaveBtn">Speichern</button>
           <button id="wcTestBtn">Testen</button>
           <button id="wcDeleteBtn" class="tl-danger">Entfernen</button>
+        </div>
+        <div class="sb-row">
+          <button id="wcSyncBtn">Jetzt abrufen</button>
         </div>
         <p class="sb-hint" id="wcStatus" style="margin:6px 0"></p>
       </details>
