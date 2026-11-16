@@ -36,8 +36,11 @@ $csrf = csrf_token();
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder/dist/Control.Geocoder.css">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="icon" type="image/png" href="../img/logo.png">
-  <script>/* für Start-Ansicht „Zuletzt": diese Seite merken */
-    try { localStorage.setItem('tlLast', location.pathname + location.search); } catch(e){}</script>
+  <script>/* für Start-Ansicht „Zuletzt": diese Seite merken — aber nicht den
+       flüchtigen „Neu"-Modus (?new=1), sonst startete die App später in
+       einem leeren Editor */
+    try { if (!/[?&]new=/.test(location.search))
+      localStorage.setItem('tlLast', location.pathname + location.search); } catch(e){}</script>
 
   <style>
     html, body { height: 100%; margin: 0; }
@@ -246,9 +249,9 @@ $csrf = csrf_token();
 
       <div class="sb-foot">
         <button id="fullscreenBtn" data-i18n="fullscreen">Vollbild</button>
+        <!-- führt im Editor zur Anleitung (hilfe.php) — editor.js überschreibt
+             die Overlay-Bindung aus map-ui.js -->
         <button id="helpBtn" data-i18n="help">Hilfe</button>
-        <a href="hilfe.php" target="_blank" rel="noopener"
-           style="flex:1 1 auto;text-align:center;padding:6px 8px;border:1px solid #ccc;border-radius:6px;background:#fff;color:inherit;text-decoration:none">Anleitung</a>
       </div>
     </aside>
 

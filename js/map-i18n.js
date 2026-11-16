@@ -55,6 +55,13 @@ const STRINGS = {
     language: 'Sprache:',
     fullscreen: 'Vollbild',
     help: 'Hilfe',
+    // App-Kopfleiste (nur auf der Karte im Multi-User-Kontext, ?app=1)
+    appBack: '‹ Übersicht',
+    appBackTitle: 'Zurück zur Übersicht',
+    appCreatePh: 'Präsentation aus dieser Ansicht erstellen',
+    appCreate: 'Erstellen',
+    appNeedPoi: 'Bitte zuerst mindestens eine Station auf der Karte setzen.',
+    appHandoffFull: 'Die Stationen konnten nicht übergeben werden (zu viele/zu große Bilder). Bitte in den Einstellungen eine geringere Bildqualität wählen und es erneut versuchen.',
     // Seitenleiste
     secStations: 'Stationen',
     secImport: 'Import',
@@ -181,6 +188,13 @@ const STRINGS = {
     language: 'Language:',
     fullscreen: 'Fullscreen',
     help: 'Help',
+    // App top bar (map opened from the multi-user app, ?app=1)
+    appBack: '‹ Overview',
+    appBackTitle: 'Back to the overview',
+    appCreatePh: 'Create a presentation from this view',
+    appCreate: 'Create',
+    appNeedPoi: 'Please place at least one station on the map first.',
+    appHandoffFull: 'The stations could not be handed over (too many/too large images). Please choose a lower image quality in the settings and try again.',
     secStations: 'Stations',
     secImport: 'Import',
     secExport: 'Export',
@@ -286,5 +300,8 @@ export function applyI18n(root = document) {
   });
   root.querySelectorAll('[data-i18n-title]').forEach(el => {
     el.title = t(el.dataset.i18nTitle);
+  });
+  root.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
   });
 }

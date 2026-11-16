@@ -29,6 +29,16 @@ declare(strict_types=1);
 <body>
 <div class="wrap">
 
+  <!-- Zurück zur Seite, von der man kam (Editor, Dashboard, …);
+       ohne Verlauf (direkter Aufruf) als Fallback zum Dashboard. -->
+  <p style="margin:0 0 10px"><a href="dashboard.php" id="backLink"
+     style="font-weight:600;text-decoration:none">‹ Zurück</a></p>
+  <script>
+    document.getElementById('backLink').onclick = function (e) {
+      if (history.length > 1) { e.preventDefault(); history.back(); }
+    };
+  </script>
+
   <div class="card">
     <h1>Hilfe &amp; Anleitung</h1>
     <p>Tourlocate ist ein Werkzeug, um Touren als Folge von Stationen auf einer
@@ -43,7 +53,8 @@ declare(strict_types=1);
       <a href="#teilen">6. Präsentationen teilen</a><br>
       <a href="#live">7. Live-Standort teilen</a><br>
       <a href="#sicherheit">8. Sicherheit (Passwort &amp; 2FA)</a><br>
-      <a href="#app">9. Android-App</a>
+      <a href="#app">9. Android-App</a><br>
+      <a href="#tipps">10. Tipps &amp; Besonderheiten</a>
     </p>
   </div>
 
@@ -189,6 +200,27 @@ declare(strict_types=1);
       <li>Unter <strong>Beim Start zeigen</strong> (Dashboard) stellst du ein, ob die App mit
       dem Dashboard, der Karte oder der zuletzt geöffneten Ansicht startet.</li>
     </ul>
+  </div>
+
+  <div class="card" id="tipps">
+    <h2>10. Tipps &amp; Besonderheiten</h2>
+    <h3>iPhone &amp; iPad</h3>
+    <p>Exportierte Dateien landen in der Dateien-App; GeoJSON/GPX lassen sich von dort
+    über „Teilen" wieder importieren. Die exportierte <strong>HTML-Datei</strong> zeigt
+    die Dateien-App-Vorschau nur eingeschränkt — besser eine App mit eingebautem Browser
+    verwenden (z.&nbsp;B. „Documents" von Readdle) oder die Datei in eine Cloud laden und
+    den Link in Safari öffnen.</p>
+    <h3>DuckDuckGo-Browser (Android)</h3>
+    <p>Beim Export erscheint unten ein Hinweis „Tippen zum Herunterladen" — das ist
+    normal, der Browser blockiert automatische Downloads.</p>
+    <h3>Eigener Standort</h3>
+    <p>Der Knopf mit der Standort-Nadel auf der Karte zeigt die eigene Position als
+    blauen Punkt mit Genauigkeitskreis (Browser-Ortung, nur über HTTPS).</p>
+    <h3>Kartenlayer &amp; Bild-Metadaten</h3>
+    <p>Alle Kartenebenen sind frei lizenziert (OSM, CyclOSM, OpenTopoMap: CC-BY-SA;
+    Satellit: Sentinel-2 cloudless von EOX, <strong>CC BY-NC-SA</strong> — nur für
+    nicht-kommerzielle Nutzung). Beim ZIP-Export erhalten die Bilddateien
+    <strong>EXIF-Daten</strong> mit Stationsname, Datum und GPS-Position.</p>
   </div>
 
   <div class="card">

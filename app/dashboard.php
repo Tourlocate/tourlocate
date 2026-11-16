@@ -56,7 +56,8 @@ $csrf = csrf_token();
   h1{font-size:20px;margin:0}
   button{padding:8px 14px;border:1px solid #cbd2d9;border-radius:7px;background:#fff;
          cursor:pointer;font:inherit}
-  button.primary{background:#2b6cb0;color:#fff;border-color:#2b6cb0;font-weight:600}
+  button.primary, a.primary{background:#2b6cb0;color:#fff;border:1px solid #2b6cb0;font-weight:600}
+  a.primary{display:inline-block;text-decoration:none;padding:8px 14px;border-radius:7px}
   button.danger{color:#c0392b;border-color:#e3b0ab}
   .list{display:flex;flex-direction:column;gap:10px}
   .card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;
@@ -99,8 +100,7 @@ $csrf = csrf_token();
 
 <div class="wrap">
   <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px">
-    <a href="../index.html?app=1" id="mapBtn" class="primary"
-       style="display:inline-block;text-decoration:none">Karte</a>
+    <a href="../index.html?app=1" id="mapBtn" class="primary">Karte</a>
     <label style="font-size:13px;color:#555">Beim Start zeigen:
       <select id="startViewSel" style="margin-left:4px;padding:4px 6px">
         <option value="dashboard">Dashboard</option>
