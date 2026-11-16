@@ -166,8 +166,10 @@ function remember_issue(int $uid): void
 }
 
 // Prüft das Cookie und stellt bei gültigem Token die Session wieder her.
-// Schreibt bewusst KEINE Header (kein setcookie), damit es gefahrlos früh in
-// current_user_id() laufen kann. Gibt die User-ID zurück oder null.
+// Erneuert das Remember-Cookie selbst nicht; einzig session_regenerate_id
+// (Fixation-Härtung) sendet einen Header — das ist in current_user_id()
+// unkritisch, weil dort immer noch kein Output gestartet ist. Gibt die
+// User-ID zurück oder null.
 function remember_try_login(): ?int
 {
     $raw = $_COOKIE['tl_remember'] ?? '';
@@ -189,6 +191,10 @@ function remember_try_login(): ?int
     if ($blocked === false || (int) $blocked === 1) {
         return null;
     }
+    // Session-Fixation-Härtung: beim Übergang anonym → angemeldet eine
+    // frische Session-ID ziehen (sendet einen Set-Cookie-Header — läuft
+    // hier immer vor jeglichem Output, daher unproblematisch).
+    session_regenerate_id(true);
     $_SESSION['uid'] = $uid; // Session wiederherstellen
     return $uid;
 }

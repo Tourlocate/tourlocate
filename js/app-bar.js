@@ -7,6 +7,7 @@
 // Wird NUR per dynamischem Import aus main.js geladen, wenn ?app gesetzt ist —
 // die öffentliche Standalone-App bleibt davon unberührt.
 import { getSetting } from './map-settings.js';
+import { t, applyI18n } from './map-i18n.js';
 
 export function setupAppBar(map) {
   document.body.classList.add('tl-app');
@@ -14,10 +15,14 @@ export function setupAppBar(map) {
   const titleInp = document.getElementById('tlAppTitle');
   const createBtn = document.getElementById('tlAppCreate');
   if (!createBtn) return;
+  // Die Leiste wird dynamisch nachgeladen — Texte einmal übersetzen (der
+  // Sprachumschalter in der Seitenleiste übersetzt sie danach wie alles
+  // andere über die data-i18n-Attribute mit).
+  applyI18n(document.getElementById('tl-app-bar'));
 
   createBtn.onclick = () => {
     if (!map.state.pois.length) {
-      alert('Bitte zuerst mindestens eine Station auf der Karte setzen.');
+      alert(t('appNeedPoi'));
       return;
     }
     // Zustand für den Editor einpacken (Bilder bleiben vorerst Base64 und
@@ -36,9 +41,7 @@ export function setupAppBar(map) {
       sessionStorage.setItem('tlHandoff', JSON.stringify(payload));
     } catch (e) {
       // sessionStorage ist knapp (~5 MB) — bei vielen großen Bildern voll.
-      alert('Die Stationen konnten nicht übergeben werden (zu viele/zu große '
-        + 'Bilder). Bitte in den Einstellungen eine geringere Bildqualität '
-        + 'wählen und es erneut versuchen.');
+      alert(t('appHandoffFull'));
       return;
     }
     location.href = 'app/editor.php?new=1';

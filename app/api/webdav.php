@@ -106,15 +106,35 @@ switch ($action) {
         break;
 
     case 'test':
+        // Bevorzugt die MITGESCHICKTEN Formularwerte testen — so lässt sich
+        // eine Verbindung schon VOR dem Speichern prüfen. Leeres Passwort
+        // (oder keine Formularwerte) = auf die gespeicherte Verbindung
+        // zurückfallen.
+        $url  = trim((string) ($input['url'] ?? ''));
+        $user = trim((string) ($input['username'] ?? ''));
+        $pass = (string) ($input['password'] ?? '');
         $c = conn_for($uid, $pid);
-        if (!$c) {
-            json_error('Keine Verbindung hinterlegt.');
+        if ($url === '' || $user === '') {
+            if (!$c) {
+                json_error('Bitte Ordner-URL und Benutzername eintragen (oder erst speichern).');
+            }
+            $url  = $c['url'];
+            $user = $c['username'];
         }
-        $pass = tl_decrypt($c['secret_cipher'], $c['secret_nonce']);
-        if ($pass === null) {
-            json_error('Gespeichertes Passwort nicht entschlüsselbar — bitte neu hinterlegen.', 500);
+        if ($pass === '') {
+            if (!$c) {
+                json_error('Bitte ein App-Passwort eintragen.');
+            }
+            $pass = tl_decrypt($c['secret_cipher'], $c['secret_nonce']);
+            if ($pass === null) {
+                json_error('Gespeichertes Passwort nicht entschlüsselbar — bitte neu hinterlegen.', 500);
+            }
         }
-        $res = tl_dav_request('list', $c['url'], $c['username'], $pass);
+        $err = tl_dav_check_url($url);
+        if ($err !== null) {
+            json_error($err);
+        }
+        $res = tl_dav_request('list', $url, $user, $pass);
         if (!$res['ok']) {
             json_error($res['error'], 502);
         }
@@ -124,7 +144,7 @@ switch ($action) {
         if ($res['status'] >= 300) {
             json_error('WebDAV-Server antwortete mit HTTP ' . $res['status'] . '.', 502);
         }
-        $images = tl_dav_list_images($res['body'], $c['url']);
+        $images = tl_dav_list_images($res['body'], $url);
         json_out(['ok' => true, 'imageCount' => count($images)]);
         break;
 

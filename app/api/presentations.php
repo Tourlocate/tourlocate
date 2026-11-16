@@ -139,14 +139,30 @@ function save_presentation(int $uid, array $input): void
     $data = $input['data_json'] ?? $input['data'] ?? null;
     if (is_array($data)) {
         $dataJson = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $decoded  = $data;
     } elseif (is_string($data) && $data !== '') {
-        json_decode($data);
+        $decoded = json_decode($data, true);
         if (json_last_error() !== JSON_ERROR_NONE) {
             json_error('Ungültige Präsentationsdaten (kein gültiges JSON).');
         }
         $dataJson = $data;
     } else {
         $dataJson = $p['data_json'];
+        $decoded  = null;
+    }
+
+    // Leitplanken gegen DB-Bloat: Bilder gehören NICHT in data_json
+    // (die laufen über upload.php und liegen als Dateien), und der
+    // Zustand selbst (POIs + Routen-Geometrie) bleibt weit unter 2 MB.
+    if ($decoded !== null) {
+        if (strlen($dataJson) > 2 * 1024 * 1024) {
+            json_error('Präsentationsdaten zu groß (max. 2 MB).', 413);
+        }
+        foreach ((array) ($decoded['pois'] ?? []) as $sp) {
+            if (isset($sp['img']) && strncmp((string) $sp['img'], 'data:', 5) === 0) {
+                json_error('Eingebettete Base64-Bilder sind nicht erlaubt — Bilder bitte über den Upload speichern.');
+            }
+        }
     }
 
     $st = db()->prepare(

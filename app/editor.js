@@ -81,6 +81,15 @@ async function loadPresentation(map) {
 
 // ---- Zustand speichern ----------------------------------------------
 async function save(map) {
+  // Noch nicht hochgeladene Base64-Bilder (aus der Karten-Übernahme) IMMER
+  // zuerst auf den Server bringen — der Server lehnt data:-Bilder in
+  // data_json ab (Leitplanke gegen DB-Bloat).
+  try {
+    await uploadBase64Images(map);
+  } catch (e) {
+    setStatus('Bild-Upload fehlgeschlagen: ' + (e?.message || e), true);
+    return;
+  }
   setStatus('Speichern…');
   const pois = map.state.pois.map(p => ({
     lat: p.lat, lng: p.lng,
@@ -111,17 +120,25 @@ async function save(map) {
 // ---- „Neu": Übernahme aus der freien Karte --------------------------
 // Legt (falls noch nicht geschehen) die Präsentation an und trägt die id in
 // das modulweite `pid` ein — danach greifen Upload/Speichern wie gewohnt.
-async function ensurePid(title) {
-  if (pid) return pid;
-  const res = await fetch('api/presentations.php?action=create', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
-    body: JSON.stringify({ title: title || '', csrf })
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!data.ok) throw new Error(data.error || 'Anlegen fehlgeschlagen.');
-  pid = data.id;
-  return pid;
+// Das Promise wird gecacht, damit parallele Aufrufe (z. B. Doppelklick auf
+// „Speichern") nicht ZWEI Präsentationen anlegen.
+let pidPromise = null;
+function ensurePid(title) {
+  if (pid) return Promise.resolve(pid);
+  if (!pidPromise) {
+    pidPromise = (async () => {
+      const res = await fetch('api/presentations.php?action=create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        body: JSON.stringify({ title: title || '', csrf })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!data.ok) throw new Error(data.error || 'Anlegen fehlgeschlagen.');
+      pid = data.id;
+      return pid;
+    })().catch(e => { pidPromise = null; throw e; }); // Fehler → neuer Versuch möglich
+  }
+  return pidPromise;
 }
 
 // Stationen mit Base64-Bild (aus der Karten-Übergabe) auf den Server laden
@@ -141,10 +158,10 @@ async function uploadBase64Images(map) {
 async function initNewPresentation(map) {
   const raw = sessionStorage.getItem('tlHandoff');
   if (!raw) { markSaved(); return; }   // leerer neuer Editor (ohne Übergabe)
-  sessionStorage.removeItem('tlHandoff');
 
   let hand;
-  try { hand = JSON.parse(raw); } catch { markSaved(); return; }
+  try { hand = JSON.parse(raw); }
+  catch { sessionStorage.removeItem('tlHandoff'); markSaved(); return; }
 
   // Titel + Verbindungs-/Profil-Einstellungen übernehmen
   $('titleInput').value = hand.title || '';
@@ -170,12 +187,16 @@ async function initNewPresentation(map) {
   renumberAndRoute(map);
   if (pois.length) fitToMarkers(map);
 
-  // Anlegen → Bilder hochladen → speichern → sauberer Reload mit Server-URLs
+  // Anlegen → speichern (lädt Base64-Bilder mit hoch) → sauberer Reload mit
+  // Server-URLs. Die Übergabe-Daten werden erst NACH dem Erfolg entfernt —
+  // scheitert etwas, überlebt der Zustand einen Reload (lieber ein
+  // mögliches Duplikat als verlorene Stationen).
   try {
     setStatus('Präsentation wird angelegt…');
     await ensurePid($('titleInput').value);
-    await uploadBase64Images(map);
     await save(map);
+    if (dirty) return; // save() ist gescheitert (Status zeigt den Fehler)
+    sessionStorage.removeItem('tlHandoff');
     location.replace('editor.php?id=' + pid);
   } catch (e) {
     setStatus('Übernahme fehlgeschlagen: ' + (e?.message || e), true);
@@ -302,7 +323,13 @@ function setupWebdavConn() {
 
   $('wcTestBtn').onclick = async () => {
     status('Teste Verbindung…');
-    const s = await api('test', {});
+    // Die AKTUELLEN Formularwerte mitschicken — so funktioniert „Testen"
+    // auch vor dem ersten Speichern (leeres Passwort = gespeichertes nutzen).
+    const s = await api('test', {
+      url: $('wcUrl').value.trim(),
+      username: $('wcUser').value.trim(),
+      password: $('wcPass').value
+    });
     if (s.ok) status('Verbindung ok — ' + s.imageCount + ' JPEG(s) im Ordner gefunden.');
     else status(s.error || 'Test fehlgeschlagen.', true);
   };
@@ -344,17 +371,28 @@ window.addEventListener('DOMContentLoaded', () => {
   if (isNew) initNewPresentation(map);
   else loadPresentation(map);
 
-  // Im „Neu"-Modus ohne Übergabe erst beim Speichern die Präsentation anlegen.
+  // Im „Neu"-Modus ohne Übergabe erst beim Speichern die Präsentation
+  // anlegen. Button während des Laufs sperren (gegen Doppelklick).
   $('saveBtn').onclick = async () => {
-    try { await ensurePid($('titleInput').value); }
-    catch (e) { setStatus('Anlegen fehlgeschlagen: ' + (e?.message || e), true); return; }
-    await save(map);
-    // URL sauber machen, damit ein Reload die angelegte Präsentation lädt.
-    if (isNew && pid && location.search.indexOf('id=') === -1) {
-      history.replaceState(null, '', 'editor.php?id=' + pid);
+    const btn = $('saveBtn');
+    btn.disabled = true;
+    try {
+      try { await ensurePid($('titleInput').value); }
+      catch (e) { setStatus('Anlegen fehlgeschlagen: ' + (e?.message || e), true); return; }
+      await save(map);
+      // URL sauber machen, damit ein Reload die angelegte Präsentation lädt.
+      if (isNew && pid && location.search.indexOf('id=') === -1) {
+        history.replaceState(null, '', 'editor.php?id=' + pid);
+      }
+    } finally {
+      btn.disabled = false;
     }
   };
-  $('titleInput').oninput = markDirty;
+
+  // „Hilfe" führt im Editor zur ausführlichen Anleitung (hilfe.php) statt
+  // zum Gesten-Overlay der statischen App — bei ungespeicherten Änderungen
+  // warnt die beforeunload-Sperre wie bei jedem Seitenwechsel.
+  $('helpBtn').onclick = () => { location.href = 'hilfe.php'; };
   setupShare();
   setupWebdavConn();
 

@@ -103,15 +103,44 @@ Details zu Architektur und Sicherheitsmodell in [app/DESIGN.md](app/DESIGN.md).
   php app/make-admin.php deine@mail.de
   ```
 
+### Empfohlene Systemvoraussetzungen
+
+Tourlocate ist bewusst genügsam (SQLite statt Datenbankserver, kein Build-Prozess, keine Hintergrund-Dienste außer dem optionalen Cron) — für den Privat-/Vereinsbetrieb mit einer Handvoll Nutzern reicht der kleinste übliche VPS:
+
+| | Minimum | Empfohlen |
+|---|---|---|
+| CPU | 1 vCPU (x86_64 oder arm64) | 2 vCPU |
+| RAM | 512 MB | 1–2 GB (Spitzen entstehen kurzzeitig bei der serverseitigen Bildverkleinerung per GD) |
+| Speicher | ~200 MB für Image/Code | plus Fotobestand: hochgeladene Bilder werden auf ~200 KB verkleinert, d. h. ≈ 5000 Bilder pro GB |
+| Software | Docker Engine + Compose v2 — oder PHP ≥ 8.1 mit den oben genannten Erweiterungen | aktuelles Debian/Ubuntu LTS, HTTPS-Reverse-Proxy (z. B. Caddy, nginx, Traefik) davor |
+
+Browser-seitig werden aktuelle Versionen von Firefox, Chrome/Chromium, Safari (macOS/iOS) und DuckDuckGo (Android) unterstützt; die Ortungs-Funktionen (eigener Standort, Live-Teilen, Foto vom Standort) setzen HTTPS voraus.
+
 ### Als Docker-Container (Alternative zur manuellen Installation)
 
-Statt PHP-Erweiterungen manuell zu installieren, kann die User-Version als fertiges Docker-Image gebaut werden (Basis: `php:8.3-apache`) — `php-sqlite3`, `php-gd`, `php-exif` und `sodium` sind darin bereits enthalten, ebenso ein eingebauter Cron für den WebDAV-Poller. Die statische App (`index.html`, `js/`) läuft im selben Container automatisch mit.
+Statt PHP-Erweiterungen manuell zu installieren, kann die User-Version als fertiges Docker-Image gebaut werden (Basis: `php:8.3-apache`) — `php-sqlite3`, `php-gd`, `php-exif` und `sodium` sind darin bereits enthalten, ebenso ein eingebauter Cron für den WebDAV-Poller. Die statische App (`index.html`, `js/`) läuft im selben Container automatisch mit. Auch `app/api/config.php` muss im Docker-Fall **nicht** von Hand angelegt werden — der Container erzeugt sie (inkl. Verschlüsselungsschlüssel) beim ersten Start selbst im Daten-Volume.
 
-```bash
-docker compose up -d --build
-```
+**Vor dem ersten Start:**
 
-Danach ist die Seite unter `http://localhost:8080/` (statische App) bzw. `http://localhost:8080/app/` (User-Version) erreichbar. Details:
+1. Repo holen und hineinwechseln:
+
+   ```bash
+   git clone https://github.com/Tourlocate/tourlocate.git
+   cd tourlocate
+   ```
+
+2. Einen Blick in `docker-compose.yml` werfen und bei Bedarf anpassen — alle Werte lassen sich auch ohne Änderung der Datei über eine `.env` daneben (bzw. in Portainer über „Environment variables") setzen:
+   - **Port**: Standard ist `8080:80` — bei Konflikt die linke Seite ändern.
+   - **`TOURLOCATE_COOKIE_SECURE`**: Standard `true` (richtig hinter einem HTTPS-Reverse-Proxy). Läuft der Container nur zum Testen **ohne** HTTPS davor, auf `false` setzen — sonst verwirft der Browser den Session-Cookie und der Login schlägt wortlos fehl.
+   - Optional **`TOURLOCATE_PROXY_KEY`** (eigener Schlüssel für den WebDAV-Proxy der statischen App) und die **`TOURLOCATE_SMTP_*`**-Variablen für „Passwort vergessen" (siehe unten; geht später auch bequemer über den Admin-Bereich).
+
+3. Dann bauen und starten:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+Danach ist die Seite unter `http://localhost:8080/` (statische App) bzw. `http://localhost:8080/app/` (User-Version) erreichbar. Anschließend ein Konto registrieren und zum Admin machen (Schritt „Erster Admin" unten). Details:
 
 - **Persistenz**: Das Volume `tourlocate_data` (→ `app/data/` im Container) enthält die SQLite-Datenbank, alle hochgeladenen Bilder **und** den beim ersten Start automatisch erzeugten Verschlüsselungsschlüssel für die WebDAV-Passwörter. Dieses Volume niemals löschen, sonst sind Konten, Präsentationen und gespeicherte WebDAV-Zugangsdaten unwiderruflich weg.
 - **Erster Admin**: nach dem ersten Registrieren im Container ausführen: `docker compose exec tourlocate php app/make-admin.php deine@mail.de`.
