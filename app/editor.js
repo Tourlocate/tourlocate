@@ -330,8 +330,18 @@ function setupWebdavConn(map) {
       username: $('wcUser').value.trim(),
       password: $('wcPass').value
     });
-    if (s.ok) status('Verbindung ok — ' + s.imageCount + ' JPEG(s) im Ordner gefunden.');
-    else status(s.error || 'Test fehlgeschlagen.', true);
+    if (!s.ok) { status(s.error || 'Test fehlgeschlagen.', true); return; }
+    // Pro-Datei-Diagnose: was liefert der Server wirklich? (unabhängig vom
+    // Import-Status). Mehrzeilig in die Statuszeile.
+    const el = $('wcStatus');
+    el.style.color = '#555';
+    el.textContent = '';
+    el.appendChild(document.createTextNode(
+      'Verbindung ok — ' + s.imageCount + ' JPEG(s) im Ordner gefunden.'));
+    (s.diags || []).forEach(d => {
+      el.appendChild(document.createElement('br'));
+      el.appendChild(document.createTextNode(d.name + ': ' + d.info));
+    });
   };
 
   $('wcDeleteBtn').onclick = async () => {
