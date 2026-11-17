@@ -70,6 +70,17 @@ function tl_apply_orientation($img, int $orientation)
 // (nicht dekodierbar).
 function tl_normalize_jpeg(string $jpeg, int $targetBytes = 204800, int $hardMaxSide = 1600): ?string
 {
+    // GD lädt das Bild als unkomprimiertes Vollbild in den Speicher (Breite ×
+    // Höhe × 4 Byte) und beim Drehen (Orientation) nochmal eine zweite Kopie.
+    // Ein typisches Handyfoto (12–50 MP) sprengt damit das PHP-Standardlimit
+    // von 128 MB → früher brach der ganze WebDAV-Import mit einem Fatal-Error
+    // ab. Darum HIER (nur für die Bildverarbeitung, CLI-Poller wie Web) das
+    // Limit auf 512 MB heben — deckt bis zur 50-MP-Grenze unten auch den
+    // Dreh-Fall ab.
+    if (function_exists('ini_set')) {
+        ini_set('memory_limit', '512M');
+    }
+
     // Dekompressionsbomben abwehren: Ein winziges JPEG kann riesige
     // Pixelmaße deklarieren; imagecreatefromstring würde dann GB an
     // Speicher belegen. Darum VOR dem Dekodieren die Maße prüfen.
