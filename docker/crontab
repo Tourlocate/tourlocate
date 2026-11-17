@@ -1,8 +1,14 @@
 # WebDAV-Poller alle 5 Minuten. cron kennt im Container kaum PATH/ENV,
 # deshalb hier explizit setzen. Läuft als www-data (nicht root).
+#
+# WICHTIG: Das Log MUSS in ein für www-data beschreibbares Verzeichnis —
+# /var/lib/tourlocate (das Volume) wird vom Entrypoint www-data übereignet.
+# Zeigte die Umleitung auf eine root-eigene Datei (z. B. unter /var/log),
+# scheiterte die Shell beim Öffnen und der Job lief NIE (last_poll_at blieb
+# stehen). Als Bonus überlebt das Log im Volume einen Redeploy.
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-*/5 * * * * www-data php /var/www/html/app/cron/poll-webdav.php >> /var/log/tourlocate-cron.log 2>&1
+*/5 * * * * www-data php /var/www/html/app/cron/poll-webdav.php >> /var/lib/tourlocate/webdav-cron.log 2>&1
 
 # Cron-Dateien unter /etc/cron.d/ brauchen eine abschließende Leerzeile.
