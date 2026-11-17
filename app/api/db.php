@@ -109,6 +109,13 @@ function tl_migrate(PDO $pdo): void
             // Spalte existiert bereits — ok (oder reports noch nicht da → unten erstellt)
         }
     }
+    // images: Quell-Href des Cloud-Imports (für Dedup beim erneuten Einlesen —
+    // so legt ein Rescan bereits importierte Dateien nicht doppelt an).
+    try {
+        $pdo->exec('ALTER TABLE images ADD COLUMN source_href TEXT');
+    } catch (PDOException $e) {
+        // Spalte existiert bereits — ok
+    }
     // live_shares: Pause-Flag (bestehende DBs; frische bekommen es im CREATE)
     try {
         $pdo->exec('ALTER TABLE live_shares ADD COLUMN paused INTEGER NOT NULL DEFAULT 0');

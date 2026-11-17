@@ -89,9 +89,14 @@ function tl_sync_read_exif(string $jpeg): array
 // last_error / seen_files_json selbst (identisches Verhalten für Cron und
 // Editor-Button). $log bekommt Detailzeilen (der Cron reicht logline durch).
 //
+// $ignoreSeen = true: die Merkliste (seen_files_json) beim Auswählen der
+// Kandidaten übergehen und ALLE noch nicht importierten Dateien erneut
+// prüfen ("Erneut einlesen"). Doppel-Importe verhindert dabei der Abgleich
+// mit bereits importierten Quell-Hrefs (images.source_href).
+//
 // Rückgabe: ['ok'=>bool, 'error'=>?string, 'imported'=>int, 'skipped'=>int,
-//            'remaining'=>int, 'limitReached'=>bool]
-function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null): array
+//            'remaining'=>int, 'limitReached'=>bool, 'listed'=>int, …]
+function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $ignoreSeen = false): array
 {
     $pdo = db();
     $cid = (int) $c['id'];
@@ -123,13 +128,25 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null): array
 
     $hrefs = tl_dav_list_images($res['body'], $c['url']);
     $seen = json_decode($c['seen_files_json'] ?: '[]', true) ?: [];
-    $newAll = array_values(array_diff($hrefs, $seen));
-    $note(count($hrefs) . ' Bilder gelistet, ' . count($newAll) . ' neu.');
+
+    // Bereits in DIESE Präsentation importierte Quell-Hrefs (Dedup).
+    $impSt = $pdo->prepare('SELECT source_href FROM images WHERE presentation_id = ? AND source_href IS NOT NULL');
+    $impSt->execute([$pid]);
+    $importedHrefs = $impSt->fetchAll(PDO::FETCH_COLUMN) ?: [];
+
+    // Kandidaten: im Normalfall die noch nicht gesehenen Dateien; beim
+    // „Erneut einlesen" (ignoreSeen) ALLE außer den bereits importierten.
+    $exclude = $ignoreSeen ? $importedHrefs : array_merge($seen, $importedHrefs);
+    $newAll = array_values(array_diff($hrefs, $exclude));
+    $note(count($hrefs) . ' Bilder gelistet, ' . count($newAll)
+        . ($ignoreSeen ? ' zu prüfen.' : ' neu.'));
     if (!$newAll) {
         $pdo->prepare('UPDATE webdav_connections SET last_poll_at = ?, last_error = NULL WHERE id = ?')
             ->execute([now_iso(), $cid]);
         return ['ok' => true, 'error' => null, 'imported' => 0, 'skipped' => 0,
-                'remaining' => 0, 'limitReached' => false];
+                'skippedNoGps' => 0, 'skippedBadImage' => 0,
+                'remaining' => 0, 'limitReached' => false,
+                'listed' => count($hrefs), 'lastGetError' => null];
     }
     $new = array_slice($newAll, 0, $maxPerRun);
 
@@ -157,8 +174,11 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null): array
 
     $imported = 0;
     $skipped = 0;
+    $skippedNoGps = 0;
+    $skippedBadImage = 0;
     $limitReached = false;
     $hardError = null;
+    $lastGetError = null;
     foreach ($new as $href) {
         if ($count >= $limit) {
             $limitReached = true;
@@ -167,7 +187,8 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null): array
         $fileUrl = tl_dav_href_to_url($href, $c['url']);
         $get = tl_dav_request('get', $fileUrl, $c['username'], $pass);
         if (!$get['ok'] || $get['status'] >= 300) {
-            $note("$href: Abruf fehlgeschlagen — " . ($get['error'] ?? 'HTTP ' . $get['status']));
+            $lastGetError = $get['error'] ?? ('HTTP ' . $get['status']);
+            $note("$href: Abruf fehlgeschlagen — " . $lastGetError);
             // NICHT als gesehen markieren → nächster Lauf versucht es erneut
             continue;
         }
@@ -176,12 +197,14 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null): array
         $exif = tl_sync_read_exif($get['body']);
         if ($exif['lat'] === null || $exif['lng'] === null) {
             $skipped++;
+            $skippedNoGps++;
             $note("$href: kein GPS — übersprungen.");
             continue;
         }
         $small = tl_normalize_jpeg($get['body'], TL_SYNC_TARGET_BYTES, TL_SYNC_HARD_MAX_SIDE);
         if ($small === null) {
             $skipped++;
+            $skippedBadImage++;
             $note("$href: nicht dekodierbar — übersprungen.");
             continue;
         }
@@ -194,10 +217,10 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null): array
         }
         $takenAt = $exif['date'] ?? now_iso();
         $ins = $pdo->prepare(
-            'INSERT INTO images (presentation_id, user_id, filename, lat, lng, taken_at, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO images (presentation_id, user_id, filename, lat, lng, taken_at, created_at, source_href)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         );
-        $ins->execute([$pid, $uid, $name, $exif['lat'], $exif['lng'], $takenAt, now_iso()]);
+        $ins->execute([$pid, $uid, $name, $exif['lat'], $exif['lng'], $takenAt, now_iso(), $href]);
         $imgId = (int) $pdo->lastInsertId();
 
         $base = preg_replace('/\.[^.]+$/', '', rawurldecode(basename($href)));
@@ -229,11 +252,17 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null): array
     $st->execute([now_iso(), $err, json_encode(array_values($seen)), $cid]);
 
     return [
-        'ok'           => $hardError === null,
-        'error'        => $err,
-        'imported'     => $imported,
-        'skipped'      => $skipped,
-        'remaining'    => count(array_diff($hrefs, $seen)),
-        'limitReached' => $limitReached,
+        'ok'              => $hardError === null,
+        'error'           => $err,
+        'imported'        => $imported,
+        'skipped'         => $skipped,
+        'skippedNoGps'    => $skippedNoGps,
+        'skippedBadImage' => $skippedBadImage,
+        // Noch offen = gelistet minus (bereits gesehen + importiert). GET-
+        // Fehler sind NICHT in seen → zählen als offen (nächster Lauf probiert).
+        'remaining'       => count(array_values(array_diff($hrefs, array_merge($seen, $importedHrefs)))),
+        'limitReached'    => $limitReached,
+        'listed'          => count($hrefs),
+        'lastGetError'    => $lastGetError,
     ];
 }
