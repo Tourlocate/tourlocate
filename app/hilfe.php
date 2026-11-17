@@ -101,9 +101,11 @@ declare(strict_types=1);
       <li><strong>Foto vom Standort aufnehmen:</strong> nimmt ein Foto mit der Kamera auf und
       legt die Station an deiner aktuellen Position an.</li>
       <li><strong>Cloud-Ordner (automatisch):</strong> verbindet einen WebDAV-/Nextcloud-Ordner als
-      Bildquelle. Bitte ein <em>App-Passwort</em> verwenden, kein Konto-Passwort (bei 2-Faktor-Schutz
-      ohnehin nötig). Mit <strong>„Testen"</strong> prüfst du Verbindung und Inhalt, mit
-      <strong>„Jetzt abrufen"</strong> startest du den Import sofort.</li>
+      Bildquelle. Als Passwort ein <em>App-Passwort</em> verwenden, nicht das Konto-Passwort — bei
+      Nextcloud unter <em>Einstellungen → Sicherheit → „Neues App-Passwort erstellen"</em>. Du kannst
+      pro Verbindung ein eigenes anlegen und einzeln widerrufen (bei 2-Faktor-Schutz ohnehin nötig).
+      Mit <strong>„Testen"</strong> prüfst du Verbindung und Inhalt, mit <strong>„Jetzt abrufen"</strong>
+      startest du den Import sofort.</li>
     </ul>
     <h3>So arbeitet der Cloud-Ordner</h3>
     <ul>
