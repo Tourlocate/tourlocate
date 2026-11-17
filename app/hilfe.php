@@ -111,9 +111,11 @@ declare(strict_types=1);
       als Stationen ergänzt (Position aus den GPS-Daten, Reihenfolge nach Aufnahmedatum) — pro Lauf
       bis zu <strong>20 neue Bilder</strong>, ein großer Ordner wird also über mehrere Läufe nachgezogen.
       Du musst die Präsentation dafür nicht offen haben; beim nächsten Öffnen sind die neuen Stationen da.</li>
-      <li><strong>Gelöschte Stationen:</strong> <strong>„Jetzt abrufen"</strong> fügt eine zuvor gelöschte
-      Station wieder ein, solange die Bilddatei noch im Ordner liegt — praktisch zum Nachholen. Der
-      <em>automatische</em> Abruf holt Gelöschtes dagegen <strong>nicht</strong> zurück (er ergänzt nur Neues).</li>
+      <li><strong>Jeder Cloud-Ordner-Import nur einmal:</strong> Ein Foto wird genau einmal als Station
+      übernommen. Löschst du diese Station wieder, bleibt sie gelöscht — weder der automatische Abruf noch
+      <strong>„Jetzt abrufen"</strong> holen sie zurück (sonst kämen einmal entfernte Fotos ständig wieder).
+      Willst du ein gelöschtes Cloud-Foto erneut, nutze <strong>„Fotos importieren"</strong> — oder, zum
+      Einrichten/Testen, den Knopf <strong>„Gelöschte erneut einlesen"</strong> im Cloud-Ordner-Bereich.</li>
       <li><strong>Nur GPS-Fotos, nur JPEG:</strong> Bilder ohne GPS-Daten werden übersprungen; HEIC kann nur
       der direkte Weg „Fotos importieren". <strong>Unterordner</strong> werden nicht durchsucht.</li>
       <li><strong>Grenzen:</strong> bis zu <strong>30 MB pro Datei</strong> und <strong>500 Bilder pro
