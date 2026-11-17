@@ -11,6 +11,15 @@ function tl_session_start(): void
     if (session_status() === PHP_SESSION_ACTIVE) {
         return;
     }
+    // Sessions im persistenten Datenverzeichnis ablegen (nicht im flüchtigen
+    // Container-/tmp). Sonst sind nach jedem Redeploy alle Sitzungen weg und
+    // der CSRF-Token in einem offenen Tab passt nicht mehr → „Ungültiges
+    // CSRF-Token" bis zum Neuladen. Scheitert das Anlegen, bleibt der
+    // PHP-Standardpfad (funktioniert, nur eben nicht persistent).
+    $sdir = tl_data_dir() . '/sessions';
+    if (is_dir($sdir) || @mkdir($sdir, 0700, true)) {
+        session_save_path($sdir);
+    }
     session_set_cookie_params([
         'httponly' => true,
         'samesite' => 'Lax',
