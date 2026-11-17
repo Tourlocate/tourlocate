@@ -163,7 +163,30 @@ switch ($action) {
             json_error($r['error'], 502);
         }
         json_out(['ok' => true, 'imported' => $r['imported'], 'skipped' => $r['skipped'],
+                  'skippedNoGps' => $r['skippedNoGps'], 'skippedBadImage' => $r['skippedBadImage'],
                   'remaining' => $r['remaining'], 'limitReached' => $r['limitReached'],
+                  'listed' => $r['listed'], 'lastGetError' => $r['lastGetError'],
+                  'error' => $r['error']]);
+        break;
+
+    case 'rescan':
+        // „Erneut einlesen": alle noch nicht importierten Dateien in EINEM
+        // Lauf erneut prüfen (ignoriert die Merkliste), bis zu 50 Stück —
+        // zum Debuggen/Nachholen, wenn „Jetzt abrufen" nichts Neues findet.
+        // Dedup über images.source_href verhindert Doppel-Importe.
+        $c = conn_for($uid, $pid);
+        if (!$c) {
+            json_error('Keine Verbindung hinterlegt — bitte erst speichern.');
+        }
+        require_once __DIR__ . '/webdav-sync.php';
+        $r = tl_webdav_sync($c, 50, null, true);
+        if (!$r['ok']) {
+            json_error($r['error'], 502);
+        }
+        json_out(['ok' => true, 'imported' => $r['imported'], 'skipped' => $r['skipped'],
+                  'skippedNoGps' => $r['skippedNoGps'], 'skippedBadImage' => $r['skippedBadImage'],
+                  'remaining' => $r['remaining'], 'limitReached' => $r['limitReached'],
+                  'listed' => $r['listed'], 'lastGetError' => $r['lastGetError'],
                   'error' => $r['error']]);
         break;
 
