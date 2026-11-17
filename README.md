@@ -107,8 +107,9 @@ Details zu Architektur und Sicherheitsmodell in [app/DESIGN.md](app/DESIGN.md).
 
 Ein pro Präsentation hinterlegter Ordner wird als Bildquelle ausgewertet. Neue Fotos darin werden automatisch als Stationen ergänzt — Position aus den **GPS-EXIF-Daten**, Reihenfolge nach Aufnahmedatum.
 
-- **Automatischer Abruf (Cron):** standardmäßig **alle 5 Minuten**, höchstens **20 neue Bilder pro Lauf und Verbindung** (ein großer Ordner wird also über mehrere Läufe nachgezogen). Der Cron importiert **nur neue** Dateien und fügt vom Nutzer **gelöschte Stationen nicht wieder ein**.
-- **„Jetzt abrufen" (manuell im Editor):** stößt den Import sofort an (in 10er-Schritten, bis der Ordner durch ist) und **fügt eine zuvor gelöschte Station wieder ein** (sofern die Bilddatei noch im Ordner liegt) — praktisch zum gezielten Nachholen. Dafür wird der aktuelle Editor-Stand vorher gespeichert.
+- **Automatischer Abruf (Cron):** standardmäßig **alle 5 Minuten**, höchstens **20 neue Bilder pro Lauf und Verbindung** (ein großer Ordner wird also über mehrere Läufe nachgezogen).
+- **Nur einmal pro Foto:** Jedes Cloud-Foto wird genau einmal als Station übernommen. Wird diese Station gelöscht, bleibt sie gelöscht — weder der Cron noch **„Jetzt abrufen"** holen sie zurück (sonst kämen entfernte Fotos ständig wieder). Erneut holen: über **„Fotos importieren"** oder, zum Einrichten/Testen, den Knopf **„Gelöschte erneut einlesen"** im Editor.
+- **„Jetzt abrufen" (manuell im Editor):** stößt den Import sofort an (in 10er-Schritten, bis der Ordner durch ist) und verhält sich dabei wie der Cron (nur neue Fotos). Der aktuelle Editor-Stand wird vorher gespeichert.
 - **Nur GPS-Fotos:** Bilder ohne GPS-Daten werden übersprungen. **Nur JPEG** — HEIC kann der Server nicht dekodieren (HEIC importiert der Browser-Weg „Fotos importieren" im Editor).
 - **Keine Unterordner:** es wird nur der angegebene Ordner selbst gelistet (Tiefe 1).
 - **Grenzen (Schutz vor Überlastung):** max. **30 MB pro Datei** (20 s Timeout je Abruf), und max. **500 Bilder pro Präsentation** (`max_images_per_presentation` in `config.php`). Jedes importierte Bild wird serverseitig auf **~200 KB** verkleinert und von Metadaten befreit (Position/Datum stehen in der Datenbank).

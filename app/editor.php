@@ -113,6 +113,17 @@ $csrf = csrf_token();
     </div>
   </div>
 
+  <!-- Details-Popup: alle Fotos im Cloud-Ordner (können viele sein → scrollbar) -->
+  <div id="wcFilesModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:16px">
+    <div style="background:#fff;border-radius:12px;padding:20px 22px;max-width:480px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.3)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <strong id="wcFilesTitle">Fotos im Ordner</strong>
+        <button id="wcFilesClose" style="border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:#666">×</button>
+      </div>
+      <ol id="wcFilesList" style="margin:0;padding-left:24px;overflow:auto;font-size:13px;line-height:1.7;word-break:break-all"></ol>
+    </div>
+  </div>
+
   <div id="tl-main">
     <button id="sidebarToggle" title="Menü">☰</button>
 
@@ -213,7 +224,8 @@ $csrf = csrf_token();
 
       <details class="sb-sec" id="secWebdavConn">
         <summary>Cloud-Ordner (automatisch)</summary>
-        <p class="sb-hint" style="margin:6px 0">Neue Fotos aus einem WebDAV-/Nextcloud-Ordner werden automatisch als Stationen ergänzt (alle paar Minuten, auch die beim Verbinden schon vorhandenen; Unterordner werden nicht durchsucht). Mit <strong>„Jetzt abrufen"</strong> startet der Import sofort. Bitte ein <strong>App-Passwort</strong> verwenden, kein Konto-Passwort — es wird verschlüsselt auf dem Server gespeichert.</p>
+        <p class="sb-hint" style="margin:6px 0">Neue Fotos aus einem WebDAV-/Nextcloud-Ordner werden automatisch als Stationen ergänzt (alle paar Minuten; auch die beim Verbinden schon vorhandenen). <strong>„Jetzt abrufen"</strong> startet sofort. Unterordner werden nicht durchsucht. Bitte ein <strong>App-Passwort</strong> verwenden, kein Konto-Passwort — es wird verschlüsselt auf dem Server gespeichert.</p>
+        <p class="sb-hint" style="margin:6px 0">Jedes Cloud-Foto wird <strong>nur einmal</strong> importiert: Löschst du eine so entstandene Station wieder, bleibt sie beim nächsten Abruf gelöscht (sonst würden einmal entfernte Fotos immer wieder auftauchen). Zum erneuten Holen dann „Fotos importieren" nutzen — oder, zum Einrichten/Testen, <strong>„Gelöschte erneut einlesen"</strong>.</p>
         <label class="sb-field-col"><span>Ordner-URL:</span>
           <input id="wcUrl" type="url" placeholder="https://cloud.example.org/remote.php/dav/files/USER/Ordner/">
         </label>
@@ -230,6 +242,7 @@ $csrf = csrf_token();
         </div>
         <div class="sb-row">
           <button id="wcSyncBtn">Jetzt abrufen</button>
+          <button id="wcRescanBtn" title="Einrichtungs-/Fehlersuche-Hilfe: holt auch Fotos zurück, deren Station gelöscht wurde.">Gelöschte erneut einlesen</button>
         </div>
         <p class="sb-hint" id="wcStatus" style="margin:6px 0"></p>
       </details>

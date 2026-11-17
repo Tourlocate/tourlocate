@@ -321,6 +321,23 @@ function setupWebdavConn(map) {
     else status(s.error || 'Fehler.', true);
   };
 
+  // Details-Popup: alle Fotos im Ordner (können viele sein → eigenes Popup).
+  const filesModal = $('wcFilesModal');
+  const closeFilesModal = () => { filesModal.style.display = 'none'; };
+  $('wcFilesClose').onclick = closeFilesModal;
+  filesModal.onclick = e => { if (e.target === filesModal) closeFilesModal(); };
+  const showFilesModal = (files) => {
+    $('wcFilesTitle').textContent = 'Fotos im Ordner (' + files.length + ')';
+    const list = $('wcFilesList');
+    list.textContent = '';
+    files.forEach(name => {
+      const li = document.createElement('li');
+      li.textContent = name;
+      list.appendChild(li);
+    });
+    filesModal.style.display = 'flex';
+  };
+
   $('wcTestBtn').onclick = async () => {
     status('Teste Verbindung…');
     // Die AKTUELLEN Formularwerte mitschicken — so funktioniert „Testen"
@@ -331,17 +348,18 @@ function setupWebdavConn(map) {
       password: $('wcPass').value
     });
     if (!s.ok) { status(s.error || 'Test fehlgeschlagen.', true); return; }
-    // Pro-Datei-Diagnose: was liefert der Server wirklich? (unabhängig vom
-    // Import-Status). Mehrzeilig in die Statuszeile.
+    // Schlanke Rückmeldung + optionaler „Details"-Link (öffnet das Popup).
     const el = $('wcStatus');
     el.style.color = '#555';
-    el.textContent = '';
-    el.appendChild(document.createTextNode(
-      'Verbindung ok — ' + s.imageCount + ' JPEG(s) im Ordner gefunden.'));
-    (s.diags || []).forEach(d => {
-      el.appendChild(document.createElement('br'));
-      el.appendChild(document.createTextNode(d.name + ': ' + d.info));
-    });
+    el.textContent = 'Verbindung ok — ' + s.imageCount + ' JPEG(s) im Ordner gefunden. ';
+    const files = s.files || [];
+    if (files.length) {
+      const a = document.createElement('a');
+      a.href = '#'; a.textContent = 'Details';
+      a.style.cursor = 'pointer';
+      a.onclick = (e) => { e.preventDefault(); showFilesModal(files); };
+      el.appendChild(a);
+    }
   };
 
   $('wcDeleteBtn').onclick = async () => {
@@ -383,8 +401,9 @@ function setupWebdavConn(map) {
     status(msg, imported === 0 && recovered === 0);
   };
 
-  // „Erneut einlesen": alle noch nicht importierten Dateien in EINEM Lauf
-  // erneut prüfen (ignoriert die Merkliste) — zum Nachholen/Debuggen.
+  // Rescan-Lauf: ignoriert die Merkliste UND heilt verwaiste Importe — holt
+  // also auch gelöschte Fotos zurück. Wird vom Knopf „Gelöschte erneut
+  // einlesen" aufgerufen (nicht vom normalen „Jetzt abrufen").
   const runRescan = async () => {
     status('Lese erneut ein…');
     const s = await api('rescan', {});
@@ -436,22 +455,35 @@ function setupWebdavConn(map) {
           break;
         }
       }
-      // Nichts Neues bearbeitet (und nichts geheilt), aber Bilder im Ordner →
-      // alle schon geprüft (z. B. früher ohne GPS). Erneutes Einlesen anbieten.
-      if (!stopMsg && processed === 0 && recovered === 0 && listed > 0) {
-        if (confirm(listed + ' Bild(er) im Ordner wurden bereits geprüft und werden '
-          + 'normalerweise nicht erneut geladen (z. B. zuvor ohne GPS-Daten übersprungen).\n\n'
-          + 'Alle erneut einlesen und prüfen? Bereits importierte Bilder bleiben erhalten '
-          + '(keine Dubletten).')) {
-          await runRescan();
-        } else {
-          status('Keine neuen Dateien.');
-        }
-        return;
-      }
-      applyNewPois(newPois); // genau einmal die neuen/geheilten Stationen in die Karte
+      // „Jetzt abrufen" holt wie der Cron NUR neue Fotos — gelöschte werden
+      // NICHT wieder eingefügt (dafür gibt es den Knopf „Gelöschte erneut
+      // einlesen"). Nichts Neues bearbeitet → schlichte Rückmeldung.
+      applyNewPois(newPois); // genau einmal die neuen Stationen in die Karte
       if (stopMsg) status(stopMsg, true);
+      else if (imported === 0 && noGps === 0 && badImg === 0) status('Keine neuen Fotos im Ordner.');
       else reportSync(imported, recovered, noGps, badImg, lastGetError, skipDiag);
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  // „Gelöschte erneut einlesen" (Einrichtungs-/Debug-Hilfe): holt auch Fotos
+  // zurück, deren Station gelöscht wurde (rescan mit Heilung). Mit Rückfrage,
+  // und vorher den aktuellen Stand speichern (sonst arbeitet der Server auf
+  // einem veralteten data_json).
+  $('wcRescanBtn').onclick = async () => {
+    if (!confirm('Alle Fotos aus dem Cloud-Ordner erneut einlesen — auch solche, deren '
+      + 'Station du gelöscht hast?\n\nBereits vorhandene Stationen bleiben unverändert '
+      + '(keine Dubletten). Gedacht zum Einrichten/Testen.')) return;
+    const btn = $('wcRescanBtn');
+    btn.disabled = true;
+    try {
+      if (dirty) {
+        status('Speichere aktuellen Stand…');
+        await save(map);
+        if (dirty) { status('Speichern fehlgeschlagen — abgebrochen.', true); return; }
+      }
+      await runRescan();
     } finally {
       btn.disabled = false;
     }

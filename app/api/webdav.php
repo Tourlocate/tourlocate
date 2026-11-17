@@ -147,26 +147,11 @@ switch ($action) {
         }
         $images = tl_dav_list_images($res['body'], $url);
 
-        // Pro Datei (bis zu 5) wirklich abrufen und prüfen, WAS ankommt —
-        // völlig unabhängig von Merkliste/Import-Status. Beantwortet direkt:
-        // liefert Nextcloud GPS mit oder nicht?
-        require_once __DIR__ . '/webdav-sync.php';
-        $diags = [];
-        foreach (array_slice($images, 0, 5) as $href) {
-            $name = rawurldecode(basename($href));
-            $get = tl_dav_request('get', tl_dav_href_to_url($href, $url), $user, $pass);
-            if (!$get['ok']) {
-                $diags[] = ['name' => $name, 'info' => 'Abruf fehlgeschlagen: ' . $get['error']];
-                continue;
-            }
-            if ($get['status'] >= 300) {
-                $diags[] = ['name' => $name, 'info' => 'HTTP ' . $get['status'] . ' beim Abruf'];
-                continue;
-            }
-            $diags[] = ['name' => $name,
-                        'info' => tl_sync_diag($get['body'], (string) ($get['contentType'] ?? ''))];
-        }
-        json_out(['ok' => true, 'imageCount' => count($images), 'diags' => $diags]);
+        // Nur die Dateinamen aus der (ohnehin schon vorliegenden) Liste —
+        // günstig, kein Einzelabruf. Der Editor zeigt Anzahl + optional ein
+        // „Details"-Popup mit allen Namen (können ja viele sein).
+        $files = array_map(static fn($h) => rawurldecode(basename($h)), $images);
+        json_out(['ok' => true, 'imageCount' => count($images), 'files' => array_values($files)]);
         break;
 
     case 'sync':
@@ -178,7 +163,10 @@ switch ($action) {
             json_error('Keine Verbindung hinterlegt — bitte erst speichern.');
         }
         require_once __DIR__ . '/webdav-sync.php';
-        $r = tl_webdav_sync($c, 10, null, false, true);
+        // heal=false: „Jetzt abrufen" verhält sich wie der Cron — importiert
+        // NUR neue Fotos und holt vom Nutzer gelöschte Stationen NICHT zurück.
+        // Gelöschtes wieder einlesen macht bewusst nur die rescan-Aktion.
+        $r = tl_webdav_sync($c, 10, null, false, false);
         if (!$r['ok']) {
             json_error($r['error'], 502);
         }
@@ -190,10 +178,10 @@ switch ($action) {
         break;
 
     case 'rescan':
-        // „Erneut einlesen": alle noch nicht importierten Dateien in EINEM
-        // Lauf erneut prüfen (ignoriert die Merkliste), bis zu 50 Stück —
-        // zum Debuggen/Nachholen, wenn „Jetzt abrufen" nichts Neues findet.
-        // Dedup über images.source_href verhindert Doppel-Importe.
+        // „Gelöschte erneut einlesen" (Einrichtungs-/Debug-Hilfe): ignoriert
+        // die Merkliste UND heilt verwaiste Importe — holt also auch Fotos
+        // zurück, deren Station gelöscht wurde. Bis zu 50 Stück; Dedup über
+        // images.source_href verhindert Doppel-Stationen für vorhandene.
         $c = conn_for($uid, $pid);
         if (!$c) {
             json_error('Keine Verbindung hinterlegt — bitte erst speichern.');
