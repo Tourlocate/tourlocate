@@ -139,9 +139,14 @@ function tl_sync_diag(string $body, string $contentType): string
 // prüfen ("Erneut einlesen"). Doppel-Importe verhindert dabei der Abgleich
 // mit bereits importierten Quell-Hrefs (images.source_href).
 //
+// $heal = true: verwaiste Stationen wiederherstellen (bereits importiertes
+// Bild, aber Station fehlt in data_json). NUR bei manuellem Abruf — der
+// Hintergrund-Cron heilt NICHT, sonst holt er vom Nutzer gelöschte Stationen
+// heimlich zurück.
+//
 // Rückgabe: ['ok'=>bool, 'error'=>?string, 'imported'=>int, 'skipped'=>int,
 //            'remaining'=>int, 'limitReached'=>bool, 'listed'=>int, …]
-function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $ignoreSeen = false): array
+function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $ignoreSeen = false, bool $heal = false): array
 {
     $pdo = db();
     $cid = (int) $c['id'];
@@ -192,37 +197,40 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
     $newPois = [];   // für den Editor: in diesem Lauf ergänzte Stationen (neu ODER geheilt)
     $recovered = 0;
 
-    // Selbstheilung: Bilder, die laut DB schon in DIESE Präsentation importiert
-    // wurden (source_href + Geodaten vorhanden), deren Station aber nicht mehr
-    // in data_json steht (z. B. durch ein früheres Überschreiben beim
-    // Speichern), als Station WIEDER ergänzen — ohne Neu-Download. So bleibt
-    // kein bereits hochgeladenes Bild „verwaist" hängen.
-    $haveImg = [];
-    foreach ($pois as $p) {
-        if (!empty($p['img'])) {
-            $haveImg[$p['img']] = true;
+    // Selbstheilung (nur manuell, $heal): Bilder, die laut DB schon in DIESE
+    // Präsentation importiert wurden (source_href + Geodaten vorhanden), deren
+    // Station aber nicht mehr in data_json steht (z. B. nach Löschen+Speichern
+    // oder einem früheren Überschreiben), als Station WIEDER ergänzen — ohne
+    // Neu-Download. So lässt sich eine gelöschte Station per „Jetzt abrufen"
+    // wieder einfügen; der Cron macht das bewusst NICHT.
+    if ($heal) {
+        $haveImg = [];
+        foreach ($pois as $p) {
+            if (!empty($p['img'])) {
+                $haveImg[$p['img']] = true;
+            }
         }
-    }
-    $recSt = $pdo->prepare('SELECT id, lat, lng, taken_at, source_href FROM images
-        WHERE presentation_id = ? AND source_href IS NOT NULL AND lat IS NOT NULL AND lng IS NOT NULL');
-    $recSt->execute([$pid]);
-    foreach ($recSt->fetchAll() as $row) {
-        $url = 'api/image.php?id=' . (int) $row['id'];
-        if (isset($haveImg[$url])) {
-            continue; // Station existiert bereits
+        $recSt = $pdo->prepare('SELECT id, lat, lng, taken_at, source_href FROM images
+            WHERE presentation_id = ? AND source_href IS NOT NULL AND lat IS NOT NULL AND lng IS NOT NULL');
+        $recSt->execute([$pid]);
+        foreach ($recSt->fetchAll() as $row) {
+            $url = 'api/image.php?id=' . (int) $row['id'];
+            if (isset($haveImg[$url])) {
+                continue; // Station existiert bereits
+            }
+            $poi = [
+                'lat'  => (float) $row['lat'], 'lng' => (float) $row['lng'],
+                'name' => preg_replace('/\.[^.]+$/', '', rawurldecode(basename((string) $row['source_href']))),
+                'link' => '', 'linkText' => '',
+                'img'  => $url, 'createdAt' => (string) ($row['taken_at'] ?? ''),
+            ];
+            $pois[] = $poi;
+            $newPois[] = $poi;
+            $recovered++;
         }
-        $poi = [
-            'lat'  => (float) $row['lat'], 'lng' => (float) $row['lng'],
-            'name' => preg_replace('/\.[^.]+$/', '', rawurldecode(basename((string) $row['source_href']))),
-            'link' => '', 'linkText' => '',
-            'img'  => $url, 'createdAt' => (string) ($row['taken_at'] ?? ''),
-        ];
-        $pois[] = $poi;
-        $newPois[] = $poi;
-        $recovered++;
-    }
-    if ($recovered > 0) {
-        $note("$recovered verwaiste Station(en) aus bereits importierten Bildern wiederhergestellt.");
+        if ($recovered > 0) {
+            $note("$recovered verwaiste Station(en) aus bereits importierten Bildern wiederhergestellt.");
+        }
     }
 
     // Kandidaten: im Normalfall die noch nicht gesehenen Dateien; beim

@@ -404,6 +404,15 @@ function setupWebdavConn(map) {
     let stopMsg = null; // Sondermeldung (Limit/GET-Fehler) statt der Normal-Bilanz
     const newPois = [];
     try {
+      // Zuerst den AKTUELLEN Editor-Stand speichern — der serverseitige Abruf
+      // arbeitet auf data_json. Ohne das würden z. B. ungespeicherte
+      // Löschungen ignoriert (die Station gilt serverseitig noch als da →
+      // „0 importiert", kein Wieder-Einfügen möglich).
+      if (dirty) {
+        status('Speichere aktuellen Stand…');
+        await save(map);
+        if (dirty) { status('Speichern fehlgeschlagen — Abruf abgebrochen.', true); return; }
+      }
       for (let round = 0; round < 60; round++) {
         status('Rufe ab… (' + imported + ' importiert)');
         const s = await api('sync', {});
