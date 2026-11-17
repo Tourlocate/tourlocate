@@ -37,10 +37,11 @@ COPY docker/php-hardening.ini /usr/local/etc/php/conf.d/zz-tourlocate-hardening.
 # Repo-Inhalt (ohne app/data, app/api/config.php — siehe .dockerignore)
 COPY . /var/www/html/
 
-# Crontab für den WebDAV-Poller (alle 5 Minuten)
+# Crontab für den WebDAV-Poller (alle 5 Minuten). Das Log schreibt der Job
+# selbst ins Daten-Volume (/var/lib/tourlocate, www-data-eigen) — kein
+# root-eigenes Logfile mehr (das ließ den als www-data laufenden Job scheitern).
 COPY docker/crontab /etc/cron.d/tourlocate-cron
-RUN chmod 0644 /etc/cron.d/tourlocate-cron \
-    && touch /var/log/tourlocate-cron.log
+RUN chmod 0644 /etc/cron.d/tourlocate-cron
 
 COPY docker/entrypoint.sh /usr/local/bin/tourlocate-entrypoint.sh
 RUN chmod +x /usr/local/bin/tourlocate-entrypoint.sh
