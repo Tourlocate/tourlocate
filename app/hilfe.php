@@ -100,12 +100,27 @@ declare(strict_types=1);
       Fotos ohne GPS-Daten werden übersprungen. JPEG und HEIC (iPhone) werden unterstützt.</li>
       <li><strong>Foto vom Standort aufnehmen:</strong> nimmt ein Foto mit der Kamera auf und
       legt die Station an deiner aktuellen Position an.</li>
-      <li><strong>Cloud-Ordner (automatisch):</strong> verbindet einen WebDAV-/Nextcloud-Ordner —
-      neue Fotos darin werden alle paar Minuten automatisch als Stationen ergänzt.
-      Bitte ein <em>App-Passwort</em> verwenden, kein Konto-Passwort.</li>
-      <li>Die <strong>Bildqualität</strong> (Einstellungen) bestimmt, wie stark Bilder beim
-      Einfügen verkleinert werden.</li>
+      <li><strong>Cloud-Ordner (automatisch):</strong> verbindet einen WebDAV-/Nextcloud-Ordner als
+      Bildquelle. Bitte ein <em>App-Passwort</em> verwenden, kein Konto-Passwort (bei 2-Faktor-Schutz
+      ohnehin nötig). Mit <strong>„Testen"</strong> prüfst du Verbindung und Inhalt, mit
+      <strong>„Jetzt abrufen"</strong> startest du den Import sofort.</li>
     </ul>
+    <h3>So arbeitet der Cloud-Ordner</h3>
+    <ul>
+      <li><strong>Automatisch:</strong> Neue Fotos werden <strong>alle paar Minuten</strong> von selbst
+      als Stationen ergänzt (Position aus den GPS-Daten, Reihenfolge nach Aufnahmedatum) — pro Lauf
+      bis zu <strong>20 neue Bilder</strong>, ein großer Ordner wird also über mehrere Läufe nachgezogen.
+      Du musst die Präsentation dafür nicht offen haben; beim nächsten Öffnen sind die neuen Stationen da.</li>
+      <li><strong>Gelöschte Stationen:</strong> <strong>„Jetzt abrufen"</strong> fügt eine zuvor gelöschte
+      Station wieder ein, solange die Bilddatei noch im Ordner liegt — praktisch zum Nachholen. Der
+      <em>automatische</em> Abruf holt Gelöschtes dagegen <strong>nicht</strong> zurück (er ergänzt nur Neues).</li>
+      <li><strong>Nur GPS-Fotos, nur JPEG:</strong> Bilder ohne GPS-Daten werden übersprungen; HEIC kann nur
+      der direkte Weg „Fotos importieren". <strong>Unterordner</strong> werden nicht durchsucht.</li>
+      <li><strong>Grenzen:</strong> bis zu <strong>30 MB pro Datei</strong> und <strong>500 Bilder pro
+      Präsentation</strong>. Jedes Bild wird auf etwa 200 KB verkleinert.</li>
+    </ul>
+    <p class="tip">Die <strong>Bildqualität</strong> (Einstellungen) bestimmt, wie stark Bilder beim
+    direkten Einfügen verkleinert werden; Cloud-Importe werden immer auf ~200 KB gebracht.</p>
   </div>
 
   <div class="card" id="verbindung">

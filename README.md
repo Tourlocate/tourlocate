@@ -103,6 +103,17 @@ Details zu Architektur und Sicherheitsmodell in [app/DESIGN.md](app/DESIGN.md).
   php app/make-admin.php deine@mail.de
   ```
 
+### Cloud-Import (WebDAV/Nextcloud): Verhalten & Grenzen
+
+Ein pro Präsentation hinterlegter Ordner wird als Bildquelle ausgewertet. Neue Fotos darin werden automatisch als Stationen ergänzt — Position aus den **GPS-EXIF-Daten**, Reihenfolge nach Aufnahmedatum.
+
+- **Automatischer Abruf (Cron):** standardmäßig **alle 5 Minuten**, höchstens **20 neue Bilder pro Lauf und Verbindung** (ein großer Ordner wird also über mehrere Läufe nachgezogen). Der Cron importiert **nur neue** Dateien und fügt vom Nutzer **gelöschte Stationen nicht wieder ein**.
+- **„Jetzt abrufen" (manuell im Editor):** stößt den Import sofort an (in 10er-Schritten, bis der Ordner durch ist) und **fügt eine zuvor gelöschte Station wieder ein** (sofern die Bilddatei noch im Ordner liegt) — praktisch zum gezielten Nachholen. Dafür wird der aktuelle Editor-Stand vorher gespeichert.
+- **Nur GPS-Fotos:** Bilder ohne GPS-Daten werden übersprungen. **Nur JPEG** — HEIC kann der Server nicht dekodieren (HEIC importiert der Browser-Weg „Fotos importieren" im Editor).
+- **Keine Unterordner:** es wird nur der angegebene Ordner selbst gelistet (Tiefe 1).
+- **Grenzen (Schutz vor Überlastung):** max. **30 MB pro Datei** (20 s Timeout je Abruf), und max. **500 Bilder pro Präsentation** (`max_images_per_presentation` in `config.php`). Jedes importierte Bild wird serverseitig auf **~200 KB** verkleinert und von Metadaten befreit (Position/Datum stehen in der Datenbank).
+- **App-Passwort:** verschlüsselt gespeichert (sodium); der Cron entschlüsselt es zum Anmelden. Bei 2FA auf dem Cloud-Konto ist ein App-Passwort ohnehin Pflicht.
+
 ### Empfohlene Systemvoraussetzungen
 
 Tourlocate ist bewusst genügsam (SQLite statt Datenbankserver, kein Build-Prozess, keine Hintergrund-Dienste außer dem optionalen Cron) — für den Privat-/Vereinsbetrieb mit einer Handvoll Nutzern reicht der kleinste übliche VPS:

@@ -59,9 +59,8 @@ function owned_presentation(int $uid, $id): array
 function list_presentations(int $uid): void
 {
     $st = db()->prepare(
-        'SELECT p.id, p.title, p.line_mode, p.profile, p.updated_at,
-                (p.share_token IS NOT NULL) AS shared,
-                (SELECT COUNT(*) FROM images i WHERE i.presentation_id = p.id) AS image_count
+        'SELECT p.id, p.title, p.line_mode, p.profile, p.updated_at, p.data_json,
+                (p.share_token IS NOT NULL) AS shared
            FROM presentations p
           WHERE p.user_id = ?
           ORDER BY p.updated_at DESC'
@@ -69,9 +68,21 @@ function list_presentations(int $uid): void
     $st->execute([$uid]);
     $rows = $st->fetchAll();
     foreach ($rows as &$r) {
-        $r['id']          = (int) $r['id'];
-        $r['shared']      = (bool) $r['shared'];
-        $r['image_count'] = (int) $r['image_count'];
+        $r['id']     = (int) $r['id'];
+        $r['shared'] = (bool) $r['shared'];
+        // Bildanzahl = aktuell auf der Karte sichtbare Stationen MIT Bild
+        // (aus data_json). NICHT COUNT(images): verwaiste Bildzeilen (Station
+        // gelöscht, Datei für die Heilung behalten) dürfen nicht mitzählen,
+        // POIs ohne Bild ebenso wenig.
+        $data = json_decode((string) ($r['data_json'] ?? ''), true);
+        $cnt = 0;
+        foreach ((array) ($data['pois'] ?? []) as $poi) {
+            if (!empty($poi['img'])) {
+                $cnt++;
+            }
+        }
+        $r['image_count'] = $cnt;
+        unset($r['data_json']); // nicht den ganzen Blob an die Liste geben
     }
     json_out(['ok' => true, 'presentations' => $rows]);
 }
