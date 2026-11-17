@@ -105,8 +105,29 @@ function tl_sync_diag(string $body, string $contentType): string
     }
     $n = count($exif);
     $hasGps = isset($exif['GPSLatitude']) || isset($exif['GPSLongitude']);
-    return "{$kb} KB, JPEG ok, EXIF-Block vorhanden ({$n} Felder), GPS-Felder: "
-        . ($hasGps ? 'ja (aber unlesbar?)' : 'FEHLEN') . " (Content-Type: {$contentType})";
+    if (!$hasGps) {
+        return "{$kb} KB, JPEG ok, EXIF-Block vorhanden ({$n} Felder), GPS-Felder: FEHLEN (Content-Type: {$contentType})";
+    }
+    // GPS-Tags da — liest UNSER Parser sie? Wenn nein: Rohstruktur zeigen,
+    // damit der Parser-Bug punktgenau behoben werden kann.
+    $lat = isset($exif['GPSLatitude']) ? tl_sync_exif_coord($exif['GPSLatitude'], (string) ($exif['GPSLatitudeRef'] ?? 'N')) : null;
+    $lng = isset($exif['GPSLongitude']) ? tl_sync_exif_coord($exif['GPSLongitude'], (string) ($exif['GPSLongitudeRef'] ?? 'E')) : null;
+    if ($lat !== null && $lng !== null) {
+        return "{$kb} KB, JPEG ok, EXIF-Block ({$n} Felder), GPS LESBAR: {$lat}, {$lng} (Content-Type: {$contentType})";
+    }
+    $show = static function ($v): string {
+        if (is_array($v)) {
+            $items = array_map(static fn($x) => is_scalar($x) ? (string) $x : '(' . gettype($x) . ')',
+                array_slice($v, 0, 4));
+            return 'array[' . count($v) . ']{' . implode('|', $items) . '}';
+        }
+        return is_scalar($v) ? gettype($v) . ':' . $v : '(' . gettype($v) . ')';
+    };
+    $dump = 'Lat=' . (isset($exif['GPSLatitude']) ? $show($exif['GPSLatitude']) : 'fehlt')
+        . ' Ref=' . (isset($exif['GPSLatitudeRef']) ? $show($exif['GPSLatitudeRef']) : 'fehlt')
+        . '; Lng=' . (isset($exif['GPSLongitude']) ? $show($exif['GPSLongitude']) : 'fehlt')
+        . ' Ref=' . (isset($exif['GPSLongitudeRef']) ? $show($exif['GPSLongitudeRef']) : 'fehlt');
+    return "{$kb} KB, JPEG ok, EXIF-Block ({$n} Felder), GPS-Tags vorhanden aber UNLESBAR — {$dump} (CT: {$contentType})";
 }
 
 // Einen Abruf-Lauf für EINE Verbindung ausführen. Schreibt last_poll_at /
