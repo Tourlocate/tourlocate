@@ -224,7 +224,7 @@ $csrf = csrf_token();
 
       <details class="sb-sec" id="secWebdavConn">
         <summary>Cloud-Ordner (automatisch)</summary>
-        <p class="sb-hint" style="margin:6px 0">Neue Fotos aus einem WebDAV-/Nextcloud-Ordner werden automatisch als Stationen ergänzt (alle paar Minuten; auch die beim Verbinden schon vorhandenen). <strong>„Jetzt abrufen"</strong> startet sofort. Unterordner werden nicht durchsucht. Bitte ein <strong>App-Passwort</strong> verwenden, kein Konto-Passwort — es wird verschlüsselt auf dem Server gespeichert.</p>
+        <p class="sb-hint" style="margin:6px 0">Neue Fotos aus einem WebDAV-/Nextcloud-Ordner werden automatisch als Stationen ergänzt (alle paar Minuten; auch die beim Verbinden schon vorhandenen). <strong>„Jetzt abrufen"</strong> startet sofort. Unterordner werden nicht durchsucht. Als Passwort bitte ein <strong>App-Passwort</strong> verwenden, nicht dein Konto-Passwort: bei Nextcloud unter <em>Einstellungen → Sicherheit → „Neues App-Passwort erstellen"</em>. Du kannst für jede Verbindung ein eigenes anlegen und es einzeln widerrufen; bei aktivierter Zwei-Faktor-Anmeldung ist es ohnehin Pflicht. Es wird verschlüsselt auf dem Server gespeichert.</p>
         <p class="sb-hint" style="margin:6px 0">Jedes Cloud-Foto wird <strong>nur einmal</strong> importiert: Löschst du eine so entstandene Station wieder, bleibt sie beim nächsten Abruf gelöscht (sonst würden einmal entfernte Fotos immer wieder auftauchen). Zum erneuten Holen dann „Fotos importieren" nutzen — oder, zum Einrichten/Testen, <strong>„Gelöschte erneut einlesen"</strong>.</p>
         <label class="sb-field-col"><span>Ordner-URL:</span>
           <input id="wcUrl" type="url" placeholder="https://cloud.example.org/remote.php/dav/files/USER/Ordner/">
@@ -232,7 +232,7 @@ $csrf = csrf_token();
         <label class="sb-field-col"><span>Benutzer:</span>
           <input id="wcUser" type="text" autocomplete="off">
         </label>
-        <label class="sb-field-col"><span>App-Passwort:</span>
+        <label class="sb-field-col"><span title="In Nextcloud erstellen: Einstellungen → Sicherheit → „Neues App-Passwort". Pro Verbindung ein eigenes möglich, einzeln widerrufbar — nicht das Konto-Passwort.">App-Passwort:</span>
           <input id="wcPass" type="password" autocomplete="off" placeholder="leer = unverändert">
         </label>
         <div class="sb-row">
