@@ -372,14 +372,15 @@ function setupWebdavConn(map) {
   // Ergebnis eines Abruf-/Rescan-Laufs anzeigen (mit aufgeschlüsselten
   // Gründen — hilft bei „nichts kommt an"). skipDiag erklärt bei „ohne GPS",
   // was vom Server wirklich ankam (Größe/Content-Type/EXIF-Block).
-  const reportSync = (imported, noGps, badImg, lastGetError, skipDiag) => {
+  const reportSync = (imported, recovered, noGps, badImg, lastGetError, skipDiag) => {
     const parts = [imported + ' Bild(er) importiert'];
+    if (recovered) parts.push(recovered + ' Station(en) wiederhergestellt');
     if (noGps)  parts.push(noGps + ' ohne GPS-Daten übersprungen');
     if (badImg) parts.push(badImg + ' nicht als JPEG lesbar (z. B. HEIC)');
     let msg = parts.join(', ') + '.';
     if (noGps && skipDiag) msg += ' — vom Server kam: ' + skipDiag;
     if (lastGetError) msg += ' Letzter Abruffehler: ' + lastGetError;
-    status(msg, imported === 0);
+    status(msg, imported === 0 && recovered === 0);
   };
 
   // „Erneut einlesen": alle noch nicht importierten Dateien in EINEM Lauf
@@ -389,7 +390,7 @@ function setupWebdavConn(map) {
     const s = await api('rescan', {});
     if (!s.ok) { status(s.error || 'Erneutes Einlesen fehlgeschlagen.', true); return; }
     applyNewPois(s.newPois);
-    reportSync(s.imported, s.skippedNoGps || 0, s.skippedBadImage || 0, s.lastGetError, s.skipDiag);
+    reportSync(s.imported, s.recovered || 0, s.skippedNoGps || 0, s.skippedBadImage || 0, s.lastGetError, s.skipDiag);
   };
 
   // „Jetzt abrufen": Import sofort anstoßen. Der Server verarbeitet pro
@@ -399,7 +400,7 @@ function setupWebdavConn(map) {
   $('wcSyncBtn').onclick = async () => {
     const btn = $('wcSyncBtn');
     btn.disabled = true;
-    let imported = 0, noGps = 0, badImg = 0, lastGetError = null, listed = 0, processed = 0, skipDiag = null;
+    let imported = 0, recovered = 0, noGps = 0, badImg = 0, lastGetError = null, listed = 0, processed = 0, skipDiag = null;
     let stopMsg = null; // Sondermeldung (Limit/GET-Fehler) statt der Normal-Bilanz
     const newPois = [];
     try {
@@ -409,6 +410,7 @@ function setupWebdavConn(map) {
         if (!s.ok) { status(s.error || 'Abruf fehlgeschlagen.', true); return; }
         listed = s.listed;
         imported += s.imported;
+        recovered += (s.recovered || 0);
         noGps += (s.skippedNoGps || 0);
         badImg += (s.skippedBadImage || 0);
         processed += s.imported + s.skipped;
@@ -425,9 +427,9 @@ function setupWebdavConn(map) {
           break;
         }
       }
-      // Nichts Neues bearbeitet, aber Bilder im Ordner → alle schon geprüft
-      // (z. B. früher ohne GPS übersprungen). Erneutes Einlesen anbieten.
-      if (!stopMsg && processed === 0 && listed > 0) {
+      // Nichts Neues bearbeitet (und nichts geheilt), aber Bilder im Ordner →
+      // alle schon geprüft (z. B. früher ohne GPS). Erneutes Einlesen anbieten.
+      if (!stopMsg && processed === 0 && recovered === 0 && listed > 0) {
         if (confirm(listed + ' Bild(er) im Ordner wurden bereits geprüft und werden '
           + 'normalerweise nicht erneut geladen (z. B. zuvor ohne GPS-Daten übersprungen).\n\n'
           + 'Alle erneut einlesen und prüfen? Bereits importierte Bilder bleiben erhalten '
@@ -438,9 +440,9 @@ function setupWebdavConn(map) {
         }
         return;
       }
-      applyNewPois(newPois); // genau einmal die neuen Stationen in die Karte
+      applyNewPois(newPois); // genau einmal die neuen/geheilten Stationen in die Karte
       if (stopMsg) status(stopMsg, true);
-      else reportSync(imported, noGps, badImg, lastGetError, skipDiag);
+      else reportSync(imported, recovered, noGps, badImg, lastGetError, skipDiag);
     } finally {
       btn.disabled = false;
     }

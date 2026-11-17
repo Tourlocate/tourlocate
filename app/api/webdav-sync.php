@@ -179,6 +179,52 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
     $impSt->execute([$pid]);
     $importedHrefs = $impSt->fetchAll(PDO::FETCH_COLUMN) ?: [];
 
+    // Präsentations-Zustand früh laden (für Import UND Selbstheilung).
+    $st = $pdo->prepare('SELECT data_json FROM presentations WHERE id = ?');
+    $st->execute([$pid]);
+    $dataJson = $st->fetchColumn();
+    if ($dataJson === false) {
+        return $fail('Ziel-Präsentation existiert nicht mehr.');
+    }
+    $data = json_decode((string) $dataJson, true) ?: [];
+    $pois = (isset($data['pois']) && is_array($data['pois'])) ? $data['pois'] : [];
+
+    $newPois = [];   // für den Editor: in diesem Lauf ergänzte Stationen (neu ODER geheilt)
+    $recovered = 0;
+
+    // Selbstheilung: Bilder, die laut DB schon in DIESE Präsentation importiert
+    // wurden (source_href + Geodaten vorhanden), deren Station aber nicht mehr
+    // in data_json steht (z. B. durch ein früheres Überschreiben beim
+    // Speichern), als Station WIEDER ergänzen — ohne Neu-Download. So bleibt
+    // kein bereits hochgeladenes Bild „verwaist" hängen.
+    $haveImg = [];
+    foreach ($pois as $p) {
+        if (!empty($p['img'])) {
+            $haveImg[$p['img']] = true;
+        }
+    }
+    $recSt = $pdo->prepare('SELECT id, lat, lng, taken_at, source_href FROM images
+        WHERE presentation_id = ? AND source_href IS NOT NULL AND lat IS NOT NULL AND lng IS NOT NULL');
+    $recSt->execute([$pid]);
+    foreach ($recSt->fetchAll() as $row) {
+        $url = 'api/image.php?id=' . (int) $row['id'];
+        if (isset($haveImg[$url])) {
+            continue; // Station existiert bereits
+        }
+        $poi = [
+            'lat'  => (float) $row['lat'], 'lng' => (float) $row['lng'],
+            'name' => preg_replace('/\.[^.]+$/', '', rawurldecode(basename((string) $row['source_href']))),
+            'link' => '', 'linkText' => '',
+            'img'  => $url, 'createdAt' => (string) ($row['taken_at'] ?? ''),
+        ];
+        $pois[] = $poi;
+        $newPois[] = $poi;
+        $recovered++;
+    }
+    if ($recovered > 0) {
+        $note("$recovered verwaiste Station(en) aus bereits importierten Bildern wiederhergestellt.");
+    }
+
     // Kandidaten: im Normalfall die noch nicht gesehenen Dateien; beim
     // „Erneut einlesen" (ignoreSeen) ALLE außer den bereits importierten.
     $exclude = $ignoreSeen ? $importedHrefs : array_merge($seen, $importedHrefs);
@@ -186,13 +232,19 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
     $note(count($hrefs) . ' Bilder gelistet, ' . count($newAll)
         . ($ignoreSeen ? ' zu prüfen.' : ' neu.'));
     if (!$newAll) {
+        if ($recovered > 0) {
+            usort($pois, fn($a, $b) => strcmp((string) ($a['createdAt'] ?? ''), (string) ($b['createdAt'] ?? '')));
+            $data['pois'] = $pois;
+            $pdo->prepare('UPDATE presentations SET data_json = ?, updated_at = ? WHERE id = ?')
+                ->execute([json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), now_iso(), $pid]);
+        }
         $pdo->prepare('UPDATE webdav_connections SET last_poll_at = ?, last_error = NULL WHERE id = ?')
             ->execute([now_iso(), $cid]);
         return ['ok' => true, 'error' => null, 'imported' => 0, 'skipped' => 0,
-                'skippedNoGps' => 0, 'skippedBadImage' => 0,
+                'skippedNoGps' => 0, 'skippedBadImage' => 0, 'recovered' => $recovered,
                 'remaining' => 0, 'limitReached' => false,
                 'listed' => count($hrefs), 'lastGetError' => null,
-                'skipDiag' => null, 'newPois' => []];
+                'skipDiag' => null, 'newPois' => $newPois];
     }
     $new = array_slice($newAll, 0, $maxPerRun);
 
@@ -203,16 +255,7 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
         return $fail('Bild-Limit erreicht (max. ' . $limit . ' Bilder pro Präsentation) — Import gestoppt.');
     }
 
-    // Präsentations-Zustand laden
-    $st = $pdo->prepare('SELECT data_json FROM presentations WHERE id = ?');
-    $st->execute([$pid]);
-    $dataJson = $st->fetchColumn();
-    if ($dataJson === false) {
-        return $fail('Ziel-Präsentation existiert nicht mehr.');
-    }
-    $data = json_decode((string) $dataJson, true) ?: [];
-    $pois = (isset($data['pois']) && is_array($data['pois'])) ? $data['pois'] : [];
-
+    // (Präsentations-Zustand $data/$pois ist oben bereits geladen.)
     $dir = tl_data_dir() . '/uploads/' . $uid . '/' . $pid;
     if (!is_dir($dir) && !@mkdir($dir, 0770, true) && !is_dir($dir)) {
         return $fail('Upload-Verzeichnis nicht anlegbar.');
@@ -226,7 +269,7 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
     $hardError = null;
     $lastGetError = null;
     $skipDiag = null; // Diagnose der ersten ohne-GPS übersprungenen Datei
-    $newPois = []; // für den Editor: die in DIESEM Lauf angelegten Stationen
+    // $newPois ist oben deklariert (enthält evtl. schon geheilte Stationen)
     foreach ($new as $href) {
         if ($count >= $limit) {
             $limitReached = true;
@@ -288,7 +331,7 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
         $note("$href: importiert (Bild $imgId).");
     }
 
-    if ($imported > 0) {
+    if ($imported > 0 || $recovered > 0) {
         // Nummerierung folgt dem Aufnahmedatum (wie sortPois 'date','asc')
         usort($pois, fn($a, $b) => strcmp((string) ($a['createdAt'] ?? ''), (string) ($b['createdAt'] ?? '')));
         $data['pois'] = $pois;
@@ -308,6 +351,7 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
         'ok'              => $hardError === null,
         'error'           => $err,
         'imported'        => $imported,
+        'recovered'       => $recovered,
         'skipped'         => $skipped,
         'skippedNoGps'    => $skippedNoGps,
         'skippedBadImage' => $skippedBadImage,
