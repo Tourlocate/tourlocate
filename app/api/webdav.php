@@ -178,7 +178,7 @@ switch ($action) {
             json_error('Keine Verbindung hinterlegt — bitte erst speichern.');
         }
         require_once __DIR__ . '/webdav-sync.php';
-        $r = tl_webdav_sync($c, 10);
+        $r = tl_webdav_sync($c, 10, null, false, true);
         if (!$r['ok']) {
             json_error($r['error'], 502);
         }
@@ -199,7 +199,7 @@ switch ($action) {
             json_error('Keine Verbindung hinterlegt — bitte erst speichern.');
         }
         require_once __DIR__ . '/webdav-sync.php';
-        $r = tl_webdav_sync($c, 50, null, true);
+        $r = tl_webdav_sync($c, 50, null, true, true);
         if (!$r['ok']) {
             json_error($r['error'], 502);
         }
