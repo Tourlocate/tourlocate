@@ -182,7 +182,7 @@ switch ($action) {
         if (!$r['ok']) {
             json_error($r['error'], 502);
         }
-        json_out(['ok' => true, 'imported' => $r['imported'], 'skipped' => $r['skipped'],
+        json_out(['ok' => true, 'imported' => $r['imported'], 'recovered' => $r['recovered'], 'skipped' => $r['skipped'],
                   'skippedNoGps' => $r['skippedNoGps'], 'skippedBadImage' => $r['skippedBadImage'],
                   'remaining' => $r['remaining'], 'limitReached' => $r['limitReached'],
                   'listed' => $r['listed'], 'lastGetError' => $r['lastGetError'], 'skipDiag' => $r['skipDiag'], 'newPois' => $r['newPois'],
@@ -203,7 +203,7 @@ switch ($action) {
         if (!$r['ok']) {
             json_error($r['error'], 502);
         }
-        json_out(['ok' => true, 'imported' => $r['imported'], 'skipped' => $r['skipped'],
+        json_out(['ok' => true, 'imported' => $r['imported'], 'recovered' => $r['recovered'], 'skipped' => $r['skipped'],
                   'skippedNoGps' => $r['skippedNoGps'], 'skippedBadImage' => $r['skippedBadImage'],
                   'remaining' => $r['remaining'], 'limitReached' => $r['limitReached'],
                   'listed' => $r['listed'], 'lastGetError' => $r['lastGetError'], 'skipDiag' => $r['skipDiag'], 'newPois' => $r['newPois'],
