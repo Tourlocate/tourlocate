@@ -146,7 +146,27 @@ switch ($action) {
             json_error('WebDAV-Server antwortete mit HTTP ' . $res['status'] . '.', 502);
         }
         $images = tl_dav_list_images($res['body'], $url);
-        json_out(['ok' => true, 'imageCount' => count($images)]);
+
+        // Pro Datei (bis zu 5) wirklich abrufen und prüfen, WAS ankommt —
+        // völlig unabhängig von Merkliste/Import-Status. Beantwortet direkt:
+        // liefert Nextcloud GPS mit oder nicht?
+        require_once __DIR__ . '/webdav-sync.php';
+        $diags = [];
+        foreach (array_slice($images, 0, 5) as $href) {
+            $name = rawurldecode(basename($href));
+            $get = tl_dav_request('get', tl_dav_href_to_url($href, $url), $user, $pass);
+            if (!$get['ok']) {
+                $diags[] = ['name' => $name, 'info' => 'Abruf fehlgeschlagen: ' . $get['error']];
+                continue;
+            }
+            if ($get['status'] >= 300) {
+                $diags[] = ['name' => $name, 'info' => 'HTTP ' . $get['status'] . ' beim Abruf'];
+                continue;
+            }
+            $diags[] = ['name' => $name,
+                        'info' => tl_sync_diag($get['body'], (string) ($get['contentType'] ?? ''))];
+        }
+        json_out(['ok' => true, 'imageCount' => count($images), 'diags' => $diags]);
         break;
 
     case 'sync':
