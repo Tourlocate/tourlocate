@@ -51,7 +51,18 @@ if [ -n "${TOURLOCATE_PROXY_KEY:-}" ]; then
         "$APP_ROOT/js/map-config.js"
 fi
 
-# Cron als Daemon starten (forkt selbst, blockiert nicht)
-cron
+# WebDAV-Poller alle 5 Minuten — als Hintergrund-Schleife statt System-Cron.
+# Begründung: cron im Container ist für Nicht-root-Jobs fragil (PAM-Session
+# via pam_loginuid.so schlägt im Container fehl → der www-data-Job lief
+# STILLSCHWEIGEND nie; zusätzlich Logfile-Rechte). Die Schleife läuft als
+# www-data (damit DB/Uploads www-data-eigen bleiben), protokolliert ins
+# Volume und übersteht per „|| true" einen Fehllauf.
+(
+  sleep 30   # kurz warten, bis Setup/Apache stehen
+  while true; do
+    su -s /bin/sh -c 'php /var/www/html/app/cron/poll-webdav.php >> /var/lib/tourlocate/webdav-cron.log 2>&1' www-data || true
+    sleep 300
+  done
+) &
 
 exec "$@"

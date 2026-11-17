@@ -1,7 +1,7 @@
 # Tourlocate — Docker-Image mit allen PHP-Voraussetzungen für die
 # User-Version (/app) und den WebDAV-Proxy (webdav-proxy.php) bereits
-# eingebaut: pdo_sqlite, gd, exif, curl, sodium. Cron läuft im selben
-# Container für den WebDAV-Poller.
+# eingebaut: pdo_sqlite, gd, exif, curl, sodium. Der WebDAV-Poller läuft als
+# Hintergrund-Schleife im Entrypoint (kein System-Cron — im Container fragil).
 #
 # Persistenz: /var/lib/tourlocate (AUSSERHALB des Web-Roots) muss als
 # Volume gemountet werden (SQLite-Datenbank, Uploads UND der automatisch
@@ -19,7 +19,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libfreetype6-dev \
         libsodium-dev \
         libcurl4-openssl-dev \
-        cron \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && docker-php-ext-configure gd --with-jpeg --with-freetype \
@@ -37,11 +36,8 @@ COPY docker/php-hardening.ini /usr/local/etc/php/conf.d/zz-tourlocate-hardening.
 # Repo-Inhalt (ohne app/data, app/api/config.php — siehe .dockerignore)
 COPY . /var/www/html/
 
-# Crontab für den WebDAV-Poller (alle 5 Minuten). Das Log schreibt der Job
-# selbst ins Daten-Volume (/var/lib/tourlocate, www-data-eigen) — kein
-# root-eigenes Logfile mehr (das ließ den als www-data laufenden Job scheitern).
-COPY docker/crontab /etc/cron.d/tourlocate-cron
-RUN chmod 0644 /etc/cron.d/tourlocate-cron
+# Der WebDAV-Poller läuft NICHT über System-Cron (im Container fragil:
+# PAM/Logfile-Rechte), sondern als Hintergrund-Schleife im Entrypoint.
 
 COPY docker/entrypoint.sh /usr/local/bin/tourlocate-entrypoint.sh
 RUN chmod +x /usr/local/bin/tourlocate-entrypoint.sh

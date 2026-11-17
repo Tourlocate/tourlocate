@@ -129,7 +129,7 @@ Browser-seitig werden aktuelle Versionen von Firefox, Chrome/Chromium, Safari (m
 
 ### Als Docker-Container (Alternative zur manuellen Installation)
 
-Statt PHP-Erweiterungen manuell zu installieren, kann die User-Version als fertiges Docker-Image gebaut werden (Basis: `php:8.3-apache`) — `php-sqlite3`, `php-gd`, `php-exif` und `sodium` sind darin bereits enthalten, ebenso ein eingebauter Cron für den WebDAV-Poller. Die statische App (`index.html`, `js/`) läuft im selben Container automatisch mit. Auch `app/api/config.php` muss im Docker-Fall **nicht** von Hand angelegt werden — der Container erzeugt sie (inkl. Verschlüsselungsschlüssel) beim ersten Start selbst im Daten-Volume.
+Statt PHP-Erweiterungen manuell zu installieren, kann die User-Version als fertiges Docker-Image gebaut werden (Basis: `php:8.3-apache`) — `php-sqlite3`, `php-gd`, `php-exif` und `sodium` sind darin bereits enthalten, ebenso der automatische WebDAV-Poller (als Hintergrund-Schleife im Container, alle 5 Minuten — Log unter `/var/lib/tourlocate/webdav-cron.log` im Volume). Die statische App (`index.html`, `js/`) läuft im selben Container automatisch mit. Auch `app/api/config.php` muss im Docker-Fall **nicht** von Hand angelegt werden — der Container erzeugt sie (inkl. Verschlüsselungsschlüssel) beim ersten Start selbst im Daten-Volume.
 
 **Vor dem ersten Start:**
 
