@@ -85,6 +85,30 @@ function tl_sync_read_exif(string $jpeg): array
     return $out;
 }
 
+// Diagnose für eine übersprungene Datei: Was kam vom Server wirklich an?
+// Beantwortet die Frage „löscht Nextcloud beim WebDAV-Abruf die EXIF-Daten?"
+// mit harten Fakten (Größe, Content-Type, JPEG ja/nein, EXIF-Block da?,
+// wie viele EXIF-Felder, GPS-Felder vorhanden?).
+function tl_sync_diag(string $body, string $contentType): string
+{
+    $size = strlen($body);
+    $isJpeg = $size >= 2 && $body[0] === "\xFF" && $body[1] === "\xD8";
+    $kb = round($size / 1024);
+    if (!$isJpeg) {
+        $head = preg_replace('/[^\x20-\x7E]/', '.', substr($body, 0, 24));
+        return "{$kb} KB, KEIN JPEG (Content-Type: {$contentType}; Beginn: „{$head}“)";
+    }
+    $exif = function_exists('exif_read_data')
+        ? @exif_read_data('data://image/jpeg;base64,' . base64_encode($body)) : null;
+    if (!is_array($exif)) {
+        return "{$kb} KB, JPEG ok, aber KEIN lesbarer EXIF-Block (Content-Type: {$contentType})";
+    }
+    $n = count($exif);
+    $hasGps = isset($exif['GPSLatitude']) || isset($exif['GPSLongitude']);
+    return "{$kb} KB, JPEG ok, EXIF-Block vorhanden ({$n} Felder), GPS-Felder: "
+        . ($hasGps ? 'ja (aber unlesbar?)' : 'FEHLEN') . " (Content-Type: {$contentType})";
+}
+
 // Einen Abruf-Lauf für EINE Verbindung ausführen. Schreibt last_poll_at /
 // last_error / seen_files_json selbst (identisches Verhalten für Cron und
 // Editor-Button). $log bekommt Detailzeilen (der Cron reicht logline durch).
@@ -146,7 +170,8 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
         return ['ok' => true, 'error' => null, 'imported' => 0, 'skipped' => 0,
                 'skippedNoGps' => 0, 'skippedBadImage' => 0,
                 'remaining' => 0, 'limitReached' => false,
-                'listed' => count($hrefs), 'lastGetError' => null, 'newPois' => []];
+                'listed' => count($hrefs), 'lastGetError' => null,
+                'skipDiag' => null, 'newPois' => []];
     }
     $new = array_slice($newAll, 0, $maxPerRun);
 
@@ -179,6 +204,7 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
     $limitReached = false;
     $hardError = null;
     $lastGetError = null;
+    $skipDiag = null; // Diagnose der ersten ohne-GPS übersprungenen Datei
     $newPois = []; // für den Editor: die in DIESEM Lauf angelegten Stationen
     foreach ($new as $href) {
         if ($count >= $limit) {
@@ -199,7 +225,10 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
         if ($exif['lat'] === null || $exif['lng'] === null) {
             $skipped++;
             $skippedNoGps++;
-            $note("$href: kein GPS — übersprungen.");
+            if ($skipDiag === null) {
+                $skipDiag = tl_sync_diag($get['body'], (string) ($get['contentType'] ?? ''));
+            }
+            $note("$href: kein GPS — übersprungen. [$skipDiag]");
             continue;
         }
         $small = tl_normalize_jpeg($get['body'], TL_SYNC_TARGET_BYTES, TL_SYNC_HARD_MAX_SIDE);
@@ -267,6 +296,7 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
         'limitReached'    => $limitReached,
         'listed'          => count($hrefs),
         'lastGetError'    => $lastGetError,
+        'skipDiag'        => $skipDiag,
         'newPois'         => $newPois,
     ];
 }

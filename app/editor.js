@@ -360,12 +360,14 @@ function setupWebdavConn(map) {
   };
 
   // Ergebnis eines Abruf-/Rescan-Laufs anzeigen (mit aufgeschlüsselten
-  // Gründen — hilft bei „nichts kommt an").
-  const reportSync = (imported, noGps, badImg, lastGetError) => {
+  // Gründen — hilft bei „nichts kommt an"). skipDiag erklärt bei „ohne GPS",
+  // was vom Server wirklich ankam (Größe/Content-Type/EXIF-Block).
+  const reportSync = (imported, noGps, badImg, lastGetError, skipDiag) => {
     const parts = [imported + ' Bild(er) importiert'];
     if (noGps)  parts.push(noGps + ' ohne GPS-Daten übersprungen');
     if (badImg) parts.push(badImg + ' nicht als JPEG lesbar (z. B. HEIC)');
     let msg = parts.join(', ') + '.';
+    if (noGps && skipDiag) msg += ' — vom Server kam: ' + skipDiag;
     if (lastGetError) msg += ' Letzter Abruffehler: ' + lastGetError;
     status(msg, imported === 0);
   };
@@ -377,7 +379,7 @@ function setupWebdavConn(map) {
     const s = await api('rescan', {});
     if (!s.ok) { status(s.error || 'Erneutes Einlesen fehlgeschlagen.', true); return; }
     applyNewPois(s.newPois);
-    reportSync(s.imported, s.skippedNoGps || 0, s.skippedBadImage || 0, s.lastGetError);
+    reportSync(s.imported, s.skippedNoGps || 0, s.skippedBadImage || 0, s.lastGetError, s.skipDiag);
   };
 
   // „Jetzt abrufen": Import sofort anstoßen. Der Server verarbeitet pro
@@ -387,7 +389,7 @@ function setupWebdavConn(map) {
   $('wcSyncBtn').onclick = async () => {
     const btn = $('wcSyncBtn');
     btn.disabled = true;
-    let imported = 0, noGps = 0, badImg = 0, lastGetError = null, listed = 0, processed = 0;
+    let imported = 0, noGps = 0, badImg = 0, lastGetError = null, listed = 0, processed = 0, skipDiag = null;
     let stopMsg = null; // Sondermeldung (Limit/GET-Fehler) statt der Normal-Bilanz
     const newPois = [];
     try {
@@ -402,6 +404,7 @@ function setupWebdavConn(map) {
         processed += s.imported + s.skipped;
         if (Array.isArray(s.newPois)) newPois.push(...s.newPois);
         if (s.lastGetError) lastGetError = s.lastGetError;
+        if (s.skipDiag && !skipDiag) skipDiag = s.skipDiag;
         if (s.limitReached) { stopMsg = s.error || 'Bild-Limit erreicht.'; break; }
         if (s.remaining <= 0) break;
         if (s.imported + s.skipped === 0) {
@@ -427,7 +430,7 @@ function setupWebdavConn(map) {
       }
       applyNewPois(newPois); // genau einmal die neuen Stationen in die Karte
       if (stopMsg) status(stopMsg, true);
-      else reportSync(imported, noGps, badImg, lastGetError);
+      else reportSync(imported, noGps, badImg, lastGetError, skipDiag);
     } finally {
       btn.disabled = false;
     }

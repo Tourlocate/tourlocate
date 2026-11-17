@@ -133,12 +133,13 @@ function tl_dav_request(string $action, string $url, string $user, string $pass)
         return ['ok' => false, 'error' => 'curl-Fehler ' . $errno . ': ' . ($msg ?: 'Verbindung fehlgeschlagen')];
     }
     $status = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $ctype  = (string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
     curl_close($ch);
 
     if (strlen($body) > TL_DAV_MAX_BYTES) {
         return ['ok' => false, 'error' => 'Antwort zu groß.'];
     }
-    return ['ok' => true, 'status' => (int) $status, 'body' => $body];
+    return ['ok' => true, 'status' => (int) $status, 'body' => $body, 'contentType' => $ctype];
 }
 
 // PROPFIND-Antwort parsen → Liste der Bilddateien (href-Pfade) im Ordner.
