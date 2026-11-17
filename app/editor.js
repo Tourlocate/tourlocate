@@ -275,7 +275,7 @@ function setupShare() {
 }
 
 // ---- WebDAV-Dauerverbindung (Cloud-Ordner, Cron-Import) -------------
-function setupWebdavConn() {
+function setupWebdavConn(map) {
   const api = async (action, extra) => {
     const opts = { headers: { 'X-CSRF-Token': csrf } };
     if (extra !== undefined) {
@@ -341,8 +341,26 @@ function setupWebdavConn() {
     else status(s.error || 'Fehler.', true);
   };
 
+  // Die serverseitig importierten Stationen SOFORT in die laufende Karte
+  // einfügen — so sieht man sie ohne Speichern/Neuladen. Sie stecken bereits
+  // in data_json des Servers; war vorher nichts ungespeichert, bleibt der
+  // Stand „gespeichert" (Inhalt = Server). Hatte man eigene Änderungen offen,
+  // bleiben sie offen und werden beim nächsten Speichern mit übernommen.
+  const applyNewPois = (newPois) => {
+    if (!Array.isArray(newPois) || !newPois.length) return;
+    const wasDirty = dirty;
+    newPois.forEach(sp => createPoi(map, {
+      lat: sp.lat, lng: sp.lng,
+      name: sp.name || '', link: sp.link || '', linkText: sp.linkText || '',
+      img: sp.img || '', createdAt: sp.createdAt || ''
+    }));
+    renumberAndRoute(map);
+    fitToMarkers(map);
+    if (!wasDirty) markSaved();
+  };
+
   // Ergebnis eines Abruf-/Rescan-Laufs anzeigen (mit aufgeschlüsselten
-  // Gründen — hilft bei „nichts kommt an") und bei Erfolg neu laden.
+  // Gründen — hilft bei „nichts kommt an").
   const reportSync = (imported, noGps, badImg, lastGetError) => {
     const parts = [imported + ' Bild(er) importiert'];
     if (noGps)  parts.push(noGps + ' ohne GPS-Daten übersprungen');
@@ -350,14 +368,6 @@ function setupWebdavConn() {
     let msg = parts.join(', ') + '.';
     if (lastGetError) msg += ' Letzter Abruffehler: ' + lastGetError;
     status(msg, imported === 0);
-    if (imported > 0) {
-      if (dirty) {
-        status(imported + ' Bild(er) importiert — bitte erst speichern und dann die '
-          + 'Seite neu laden, um die neuen Stationen zu sehen.');
-      } else {
-        setTimeout(() => location.reload(), 1500);
-      }
-    }
   };
 
   // „Erneut einlesen": alle noch nicht importierten Dateien in EINEM Lauf
@@ -366,17 +376,20 @@ function setupWebdavConn() {
     status('Lese erneut ein…');
     const s = await api('rescan', {});
     if (!s.ok) { status(s.error || 'Erneutes Einlesen fehlgeschlagen.', true); return; }
+    applyNewPois(s.newPois);
     reportSync(s.imported, s.skippedNoGps || 0, s.skippedBadImage || 0, s.lastGetError);
   };
 
   // „Jetzt abrufen": Import sofort anstoßen. Der Server verarbeitet pro
   // Aufruf höchstens 10 Bilder (kurze Requests) — hier so lange nachfassen,
-  // bis nichts mehr übrig ist. Danach Seite neu laden, damit die neuen
-  // Stationen auf der Karte erscheinen (nur wenn nichts ungespeichert ist).
+  // bis nichts mehr übrig ist. Die neuen Stationen werden direkt in die Karte
+  // eingefügt (kein Speichern/Neuladen nötig).
   $('wcSyncBtn').onclick = async () => {
     const btn = $('wcSyncBtn');
     btn.disabled = true;
     let imported = 0, noGps = 0, badImg = 0, lastGetError = null, listed = 0, processed = 0;
+    let stopMsg = null; // Sondermeldung (Limit/GET-Fehler) statt der Normal-Bilanz
+    const newPois = [];
     try {
       for (let round = 0; round < 60; round++) {
         status('Rufe ab… (' + imported + ' importiert)');
@@ -387,20 +400,21 @@ function setupWebdavConn() {
         noGps += (s.skippedNoGps || 0);
         badImg += (s.skippedBadImage || 0);
         processed += s.imported + s.skipped;
+        if (Array.isArray(s.newPois)) newPois.push(...s.newPois);
         if (s.lastGetError) lastGetError = s.lastGetError;
-        if (s.limitReached) { status(s.error || 'Bild-Limit erreicht.', true); break; }
+        if (s.limitReached) { stopMsg = s.error || 'Bild-Limit erreicht.'; break; }
         if (s.remaining <= 0) break;
         if (s.imported + s.skipped === 0) {
           // Kein Fortschritt mehr → Rest ließ sich nicht abrufen (GET-Fehler)
-          status('Abruf unvollständig — ' + s.remaining + ' Datei(en) ließen sich nicht '
+          stopMsg = 'Abruf unvollständig — ' + s.remaining + ' Datei(en) ließen sich nicht '
             + 'laden' + (lastGetError ? ' (' + lastGetError + ')' : '') + '. '
-            + imported + ' importiert.', true);
-          return;
+            + imported + ' importiert.';
+          break;
         }
       }
       // Nichts Neues bearbeitet, aber Bilder im Ordner → alle schon geprüft
       // (z. B. früher ohne GPS übersprungen). Erneutes Einlesen anbieten.
-      if (processed === 0 && listed > 0) {
+      if (!stopMsg && processed === 0 && listed > 0) {
         if (confirm(listed + ' Bild(er) im Ordner wurden bereits geprüft und werden '
           + 'normalerweise nicht erneut geladen (z. B. zuvor ohne GPS-Daten übersprungen).\n\n'
           + 'Alle erneut einlesen und prüfen? Bereits importierte Bilder bleiben erhalten '
@@ -411,7 +425,9 @@ function setupWebdavConn() {
         }
         return;
       }
-      reportSync(imported, noGps, badImg, lastGetError);
+      applyNewPois(newPois); // genau einmal die neuen Stationen in die Karte
+      if (stopMsg) status(stopMsg, true);
+      else reportSync(imported, noGps, badImg, lastGetError);
     } finally {
       btn.disabled = false;
     }
@@ -470,7 +486,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // warnt die beforeunload-Sperre wie bei jedem Seitenwechsel.
   $('helpBtn').onclick = () => { location.href = 'hilfe.php'; };
   setupShare();
-  setupWebdavConn();
+  setupWebdavConn(map);
 
   // Vor dem Verlassen warnen, wenn ungespeichert
   window.addEventListener('beforeunload', e => {

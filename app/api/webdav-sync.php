@@ -146,7 +146,7 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
         return ['ok' => true, 'error' => null, 'imported' => 0, 'skipped' => 0,
                 'skippedNoGps' => 0, 'skippedBadImage' => 0,
                 'remaining' => 0, 'limitReached' => false,
-                'listed' => count($hrefs), 'lastGetError' => null];
+                'listed' => count($hrefs), 'lastGetError' => null, 'newPois' => []];
     }
     $new = array_slice($newAll, 0, $maxPerRun);
 
@@ -179,6 +179,7 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
     $limitReached = false;
     $hardError = null;
     $lastGetError = null;
+    $newPois = []; // für den Editor: die in DIESEM Lauf angelegten Stationen
     foreach ($new as $href) {
         if ($count >= $limit) {
             $limitReached = true;
@@ -224,12 +225,14 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
         $imgId = (int) $pdo->lastInsertId();
 
         $base = preg_replace('/\.[^.]+$/', '', rawurldecode(basename($href)));
-        $pois[] = [
+        $poi = [
             'lat' => $exif['lat'], 'lng' => $exif['lng'],
             'name' => $base, 'link' => '', 'linkText' => '',
             'img' => 'api/image.php?id=' . $imgId,
             'createdAt' => $takenAt,
         ];
+        $pois[] = $poi;
+        $newPois[] = $poi;
         $imported++;
         $count++;
         $note("$href: importiert (Bild $imgId).");
@@ -264,5 +267,6 @@ function tl_webdav_sync(array $c, int $maxPerRun, ?callable $log = null, bool $i
         'limitReached'    => $limitReached,
         'listed'          => count($hrefs),
         'lastGetError'    => $lastGetError,
+        'newPois'         => $newPois,
     ];
 }
