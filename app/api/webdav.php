@@ -53,6 +53,39 @@ function conn_state(?array $c): array
     ];
 }
 
+// Einen Abruf-Lauf ausführen und das Ergebnis als JSON zurückgeben. EINE
+// Stelle für „Jetzt abrufen" (sync) UND „Gelöschte erneut einlesen" (rescan) —
+// sie unterscheiden sich nur in $maxPerRun/$ignoreSeen/$heal. Der gemeinsame
+// Kern (gleiches Verhalten wie der Cron, der dieselbe tl_webdav_sync nutzt)
+// liegt damit an genau EINER Stelle. Beendet die Anfrage (json_out/json_error).
+function webdav_run_sync(int $uid, int $pid, int $maxPerRun, bool $ignoreSeen, bool $heal): void
+{
+    $c = conn_for($uid, $pid);
+    if (!$c) {
+        json_error('Keine Verbindung hinterlegt — bitte erst speichern.');
+    }
+    require_once __DIR__ . '/webdav-sync.php';
+    $r = tl_webdav_sync($c, $maxPerRun, null, $ignoreSeen, $heal);
+    if (!$r['ok']) {
+        json_error($r['error'], 502);
+    }
+    json_out([
+        'ok'              => true,
+        'imported'        => $r['imported'],
+        'recovered'       => $r['recovered'],
+        'skipped'         => $r['skipped'],
+        'skippedNoGps'    => $r['skippedNoGps'],
+        'skippedBadImage' => $r['skippedBadImage'],
+        'remaining'       => $r['remaining'],
+        'limitReached'    => $r['limitReached'],
+        'listed'          => $r['listed'],
+        'lastGetError'    => $r['lastGetError'],
+        'skipDiag'        => $r['skipDiag'],
+        'newPois'         => $r['newPois'],
+        'error'           => $r['error'],
+    ]);
+}
+
 if ($action === 'status') {
     $pid = owned_pid($uid, $_GET['presentation_id'] ?? 0);
     json_out(conn_state(conn_for($uid, $pid)));
@@ -155,47 +188,17 @@ switch ($action) {
         break;
 
     case 'sync':
-        // „Jetzt abrufen": einen Import-Lauf sofort ausführen (gleicher Kern
-        // wie der Cron, aber nur 10 Bilder pro Aufruf, damit der Request kurz
-        // bleibt — der Browser ruft wiederholt auf, bis remaining 0 ist).
-        $c = conn_for($uid, $pid);
-        if (!$c) {
-            json_error('Keine Verbindung hinterlegt — bitte erst speichern.');
-        }
-        require_once __DIR__ . '/webdav-sync.php';
-        // heal=false: „Jetzt abrufen" verhält sich wie der Cron — importiert
-        // NUR neue Fotos und holt vom Nutzer gelöschte Stationen NICHT zurück.
-        // Gelöschtes wieder einlesen macht bewusst nur die rescan-Aktion.
-        $r = tl_webdav_sync($c, 10, null, false, false);
-        if (!$r['ok']) {
-            json_error($r['error'], 502);
-        }
-        json_out(['ok' => true, 'imported' => $r['imported'], 'recovered' => $r['recovered'], 'skipped' => $r['skipped'],
-                  'skippedNoGps' => $r['skippedNoGps'], 'skippedBadImage' => $r['skippedBadImage'],
-                  'remaining' => $r['remaining'], 'limitReached' => $r['limitReached'],
-                  'listed' => $r['listed'], 'lastGetError' => $r['lastGetError'], 'skipDiag' => $r['skipDiag'], 'newPois' => $r['newPois'],
-                  'error' => $r['error']]);
+        // „Jetzt abrufen" = exakt wie der Cron: nur neue Fotos, gelöschte
+        // NICHT zurückholen (ignoreSeen=false, heal=false). 10 Bilder pro
+        // Aufruf (kurzer Request); der Browser fasst nach, bis remaining 0 ist.
+        webdav_run_sync($uid, $pid, 10, false, false);
         break;
 
     case 'rescan':
-        // „Gelöschte erneut einlesen" (Einrichtungs-/Debug-Hilfe): ignoriert
-        // die Merkliste UND heilt verwaiste Importe — holt also auch Fotos
-        // zurück, deren Station gelöscht wurde. Bis zu 50 Stück; Dedup über
-        // images.source_href verhindert Doppel-Stationen für vorhandene.
-        $c = conn_for($uid, $pid);
-        if (!$c) {
-            json_error('Keine Verbindung hinterlegt — bitte erst speichern.');
-        }
-        require_once __DIR__ . '/webdav-sync.php';
-        $r = tl_webdav_sync($c, 50, null, true, true);
-        if (!$r['ok']) {
-            json_error($r['error'], 502);
-        }
-        json_out(['ok' => true, 'imported' => $r['imported'], 'recovered' => $r['recovered'], 'skipped' => $r['skipped'],
-                  'skippedNoGps' => $r['skippedNoGps'], 'skippedBadImage' => $r['skippedBadImage'],
-                  'remaining' => $r['remaining'], 'limitReached' => $r['limitReached'],
-                  'listed' => $r['listed'], 'lastGetError' => $r['lastGetError'], 'skipDiag' => $r['skipDiag'], 'newPois' => $r['newPois'],
-                  'error' => $r['error']]);
+        // „Gelöschte erneut einlesen" (Einrichtungs-/Debug-Hilfe): Merkliste
+        // ignorieren + verwaiste Importe heilen → holt auch gelöschte Fotos
+        // zurück. Bis 50; Dedup über source_href verhindert Doppel-Stationen.
+        webdav_run_sync($uid, $pid, 50, true, true);
         break;
 
     case 'delete':
