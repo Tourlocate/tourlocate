@@ -297,6 +297,7 @@ function setupWebdavConn(map) {
   };
 
   const render = (s) => {
+    $('wcAutoPoll').checked = !!s.autoPoll; // automatischer Cron-Abruf (Default aus)
     if (s.configured) {
       $('wcUrl').value = s.url || '';
       $('wcUser').value = s.username || '';
@@ -317,7 +318,8 @@ function setupWebdavConn(map) {
     const s = await api('save', {
       url: $('wcUrl').value.trim(),
       username: $('wcUser').value.trim(),
-      password: $('wcPass').value
+      password: $('wcPass').value,
+      autoPoll: $('wcAutoPoll').checked
     });
     if (s.ok) { $('wcPass').value = ''; render(s); }
     else status(s.error || T.error, true);

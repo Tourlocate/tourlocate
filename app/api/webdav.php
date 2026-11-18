@@ -48,6 +48,7 @@ function conn_state(?array $c): array
         'url'        => $c['url'],
         'username'   => $c['username'],
         'active'     => (bool) $c['active'],
+        'autoPoll'   => (bool) ($c['auto_poll'] ?? 0),
         'lastPollAt' => $c['last_poll_at'],
         'lastError'  => $c['last_error'],
     ];
@@ -108,6 +109,7 @@ switch ($action) {
         if ($err !== null) {
             json_error($err);
         }
+        $autoPoll = !empty($input['autoPoll']) ? 1 : 0; // automatischer Cron-Abruf
 
         $existing = conn_for($uid, $pid);
         if ($pass === '' && $existing) {
@@ -124,17 +126,17 @@ switch ($action) {
             $st = db()->prepare(
                 'UPDATE webdav_connections
                     SET url = ?, username = ?, secret_cipher = ?, secret_nonce = ?,
-                        active = 1, last_error = NULL
+                        active = 1, auto_poll = ?, last_error = NULL
                   WHERE id = ?'
             );
-            $st->execute([$url, $user, $cipher, $nonce, (int) $existing['id']]);
+            $st->execute([$url, $user, $cipher, $nonce, $autoPoll, (int) $existing['id']]);
         } else {
             $st = db()->prepare(
                 'INSERT INTO webdav_connections
-                    (user_id, presentation_id, url, username, secret_cipher, secret_nonce, active, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, 1, ?)'
+                    (user_id, presentation_id, url, username, secret_cipher, secret_nonce, active, auto_poll, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)'
             );
-            $st->execute([$uid, $pid, $url, $user, $cipher, $nonce, now_iso()]);
+            $st->execute([$uid, $pid, $url, $user, $cipher, $nonce, $autoPoll, now_iso()]);
         }
         json_out(conn_state(conn_for($uid, $pid)));
         break;

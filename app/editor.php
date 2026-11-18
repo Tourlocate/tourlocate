@@ -246,6 +246,7 @@ $csrf = csrf_token();
         <label class="sb-field-col"><span title="<?= L('In Nextcloud erstellen: Einstellungen → Sicherheit → „Neues App-Passwort". Pro Verbindung ein eigenes möglich, einzeln widerrufbar — nicht das Konto-Passwort.', 'Create in Nextcloud: Settings → Security → “New app password”. A separate one per connection is possible, individually revocable — not your account password.') ?>"><?= L('App-Passwort:', 'App password:') ?></span>
           <input id="wcPass" type="password" autocomplete="off" placeholder="<?= L('leer = unverändert', 'empty = unchanged') ?>">
         </label>
+        <label class="sb-check" style="margin:8px 0"><input type="checkbox" id="wcAutoPoll"><span><?= L('Soll der Bilderabruf automatisch alle 5 Min. erfolgen? (Standard: aus)', 'Fetch images automatically every 5 min? (default: off)') ?></span></label>
         <div class="sb-row">
           <button id="wcSaveBtn"><?= L('Speichern', 'Save') ?></button>
           <button id="wcTestBtn"><?= L('Testen', 'Test') ?></button>
