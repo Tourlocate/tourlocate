@@ -117,6 +117,16 @@ function tl_migrate(PDO $pdo): void
     } catch (PDOException $e) {
         // Spalte existiert bereits — ok
     }
+    // webdav_connections: auto_poll — läuft der Cron (alle 5 Min) auf dieser
+    // Verbindung? Neue Verbindungen: Standard AUS (0). Bestandsverbindungen
+    // liefen bisher automatisch → beim Hinzufügen der Spalte einmalig auf 1
+    // setzen, damit sich ihr Verhalten nicht ändert.
+    try {
+        $pdo->exec('ALTER TABLE webdav_connections ADD COLUMN auto_poll INTEGER NOT NULL DEFAULT 0');
+        $pdo->exec('UPDATE webdav_connections SET auto_poll = 1');
+    } catch (PDOException $e) {
+        // Spalte existiert bereits oder Tabelle noch nicht da — ok
+    }
     // live_shares: Pause-Flag (bestehende DBs; frische bekommen es im CREATE)
     try {
         $pdo->exec('ALTER TABLE live_shares ADD COLUMN paused INTEGER NOT NULL DEFAULT 0');

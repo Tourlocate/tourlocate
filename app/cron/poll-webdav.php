@@ -29,7 +29,9 @@ function logline(string $msg): void
     echo '[' . now_iso() . '] ' . $msg . "\n";
 }
 
-$conns = db()->query('SELECT * FROM webdav_connections WHERE active = 1')->fetchAll();
+// Nur Verbindungen mit eingeschaltetem Auto-Abruf (auto_poll = 1). Manuelles
+// „Jetzt abrufen" im Editor läuft unabhängig davon über api/webdav.php.
+$conns = db()->query('SELECT * FROM webdav_connections WHERE active = 1 AND auto_poll = 1')->fetchAll();
 logline(count($conns) . ' aktive Verbindung(en).');
 
 foreach ($conns as $c) {
