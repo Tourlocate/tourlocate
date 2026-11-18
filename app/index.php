@@ -100,6 +100,8 @@ $canRegister = $regMode === 'open' || ($regMode === 'invite' && $inviteValid);
     <?php endif; ?>
   </div>
   <div class="switch" id="forgotLine"><a id="forgotLink"><?= L('Passwort vergessen?', 'Forgot password?') ?></a></div>
+  <!-- Kostenlose, konten­lose Demo (statische Planer-App auf GitHub Pages). -->
+  <div class="switch" id="demoLine"><a href="https://tourlocate.github.io/tourlocate/" target="_blank" rel="noopener"><?= L('Ohne Konto ausprobieren', 'Try it without an account') ?> →</a></div>
   <div id="forgotBox" style="display:none;margin-top:12px;border-top:1px solid #eef2f6;padding-top:12px">
     <label for="forgotEmail"><?= L('E-Mail für den Link zum Zurücksetzen', 'Email for the reset link') ?></label>
     <input id="forgotEmail" type="email" autocomplete="email">

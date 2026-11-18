@@ -77,6 +77,23 @@ select:disabled { opacity:.5; }
 }
 #routeinfo:empty{ display:none; }
 
+/* Demo-Hinweis (nur auf der GitHub-Pages-Demo bzw. der Seite ohne ?app;
+   per JS in index.html eingeblendet). Über der KARTE zentriert, nicht über
+   dem Viewport — sonst verschwände er auf schmalen Breiten unter der offenen
+   Seitenleiste (280px). Bei geschlossener/mobiler Leiste normal zentriert. */
+#tl-demo-banner{
+  position:fixed; bottom:14px; z-index:1100;
+  left:calc(50% + 140px); transform:translateX(-50%);
+  background:rgba(43,108,176,.95); color:#fff;
+  padding:7px 14px; border-radius:20px;
+  font:13px/1.35 system-ui,sans-serif;
+  box-shadow:0 2px 10px rgba(0,0,0,.25);
+  max-width:92vw; text-align:center;
+}
+#tl-demo-banner a{ color:#fff; font-weight:600; margin-left:8px; white-space:nowrap; }
+body.sidebar-closed #tl-demo-banner{ left:50%; }
+@media (max-width:720px){ #tl-demo-banner{ left:50%; } }
+
 /* Drop-Overlay beim Foto-Import per Drag & Drop */
 #dropOverlay{
   position:fixed; inset:0; z-index:2000; display:none;
