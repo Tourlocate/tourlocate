@@ -7,6 +7,11 @@
 declare(strict_types=1);
 require_once __DIR__ . '/api/bootstrap.php';
 
+// DE·EN-Umschaltung (?lang=…) — Token in ?t=… bleibt erhalten.
+if (tl_handle_lang_switch()) {
+    exit;
+}
+
 $token = (string) ($_GET['t'] ?? '');
 
 // Existenzprüfung wie bei view.php: unbekannter Link → Fehlerseite.
@@ -17,24 +22,42 @@ $P = $token !== '' ? $st->fetch() : false;
 
 if (!$P) {
     http_response_code(404);
-    echo '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">'
+    echo '<!DOCTYPE html><html lang="' . tl_lang() . '"><head><meta charset="utf-8">'
        . '<meta name="viewport" content="width=device-width,initial-scale=1">'
        . '<title>Tourlocate</title><style>body{margin:0;font-family:system-ui,sans-serif;'
        . 'background:#f4f6f8;color:#1a1a1a;display:flex;min-height:100vh;align-items:center;'
        . 'justify-content:center;padding:20px;text-align:center}</style></head><body><div>'
-       . '<h1>Nicht gefunden</h1><p>Dieser Link ist ungültig oder wurde beendet.</p>'
+       . '<h1>' . L('Nicht gefunden', 'Not found') . '</h1><p>'
+       . L('Dieser Link ist ungültig oder wurde beendet.',
+            'This link is invalid or has been ended.') . '</p>'
        . '</div></body></html>';
     exit;
 }
 
 $label = (string) ($P['label'] ?? '');
-$heading = $label !== '' ? $label : 'Live-Standort';
+$heading = $label !== '' ? $label : L('Live-Standort', 'Live location');
 // ?preview=1 → der Teilende schaut sich selbst die Ansicht an; dann einen
 // Zurück-Link zum Dashboard zeigen (Betrachter mit dem Link sehen ihn nicht).
 $preview = isset($_GET['preview']);
+
+// Strings für das Client-JS. {ago}/{n} werden client-seitig ersetzt.
+$T = [
+    'waiting'    => L('Warten auf Position…', 'Waiting for position…'),
+    'updated'    => L('Aktualisiert {ago}', 'Updated {ago}'),
+    'stale'      => L('⚠️ Standort potentiell veraltet (letzte Aktualisierung {ago})',
+                      '⚠️ Location possibly outdated (last update {ago})'),
+    'expired'    => L('Teilen abgelaufen.', 'Sharing has expired.'),
+    'ended'      => L('Teilen beendet.', 'Sharing has ended.'),
+    'paused'     => L('⏸ Teilen pausiert', '⏸ Sharing paused'),
+    'unavailable'=> L('Nicht verfügbar.', 'Not available.'),
+    'connError'  => L('Verbindungsfehler.', 'Connection error.'),
+    'agoSec'     => L('vor {n} Sek.', '{n} sec ago'),
+    'agoMin'     => L('vor {n} Min.', '{n} min ago'),
+    'agoHour'    => L('vor {n} Std.', '{n} h ago'),
+];
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="<?= tl_lang() ?>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -58,19 +81,21 @@ $preview = isset($_GET['preview']);
 <body>
 <div id="bar">
 <?php if ($preview): ?>
-  <a href="dashboard.php" style="font-size:14px;color:#2b6cb0;white-space:nowrap;text-decoration:none;font-weight:600">‹ Zurück</a>
+  <a href="dashboard.php" style="font-size:14px;color:#2b6cb0;white-space:nowrap;text-decoration:none;font-weight:600"><?= L('‹ Zurück', '‹ Back') ?></a>
 <?php endif; ?>
   <img src="../img/logo.png" alt="" onerror="this.style.display='none'">
-  <strong><?= htmlspecialchars($heading, ENT_QUOTES) ?><?= $preview ? ' (Vorschau)' : '' ?></strong>
-  <a href="impressum.php" style="font-size:12px;color:#888;white-space:nowrap">Impressum</a>
+  <strong><?= htmlspecialchars($heading, ENT_QUOTES) ?><?= $preview ? L(' (Vorschau)', ' (Preview)') : '' ?></strong>
+  <a href="<?= htmlspecialchars(tl_lang_switch_url(tl_lang() === 'de' ? 'en' : 'de'), ENT_QUOTES) ?>" style="font-size:12px;color:#888;white-space:nowrap"><?= tl_lang() === 'de' ? 'EN' : 'DE' ?></a>
+  <a href="impressum.php" style="font-size:12px;color:#888;white-space:nowrap"><?= L('Impressum', 'Imprint') ?></a>
 </div>
 <div id="map"></div>
-<div id="pill">Warten auf Position…</div>
+<div id="pill"><?= L('Warten auf Position…', 'Waiting for position…') ?></div>
 
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
   var TOKEN = <?= json_encode($token) ?>;
+  var T = <?= json_encode($T, JSON_UNESCAPED_UNICODE) ?>;
   var pill = document.getElementById('pill');
 
   var map = L.map('map').setView([0,0],2);
@@ -99,10 +124,10 @@ $preview = isset($_GET['preview']);
     var d = new Date(atIso); if (isNaN(d)) return;
     var ageSec = Math.max(0, Math.round((Date.now() - d.getTime())/1000));
     if (ageSec > STALE_SEC){
-      setPill('⚠️ Standort potentiell veraltet (letzte Aktualisierung ' + ago(atIso) + ')', 'stale');
+      setPill(T.stale.replace('{ago}', ago(atIso)), 'stale');
       setDotStale(true);
     } else {
-      setPill('Aktualisiert ' + ago(atIso), 'live');
+      setPill(T.updated.replace('{ago}', ago(atIso)), 'live');
       setDotStale(false);
     }
   }
@@ -111,10 +136,10 @@ $preview = isset($_GET['preview']);
   function ago(iso){
     var d = new Date(iso); if (isNaN(d)) return '';
     var s = Math.max(0, Math.round((Date.now() - d.getTime())/1000));
-    if (s < 60) return 'vor ' + s + ' Sek.';
+    if (s < 60) return T.agoSec.replace('{n}', s);
     var m = Math.round(s/60);
-    if (m < 60) return 'vor ' + m + ' Min.';
-    return 'vor ' + Math.round(m/60) + ' Std.';
+    if (m < 60) return T.agoMin.replace('{n}', m);
+    return T.agoHour.replace('{n}', Math.round(m/60));
   }
 
   var lastAt = null;
@@ -183,13 +208,13 @@ $preview = isset($_GET['preview']);
       var d = await res.json().catch(function(){ return {}; });
       if (!d.ok){
         activeState = false;
-        setPill(d.error || 'Nicht verfügbar.', 'off');
+        setPill(d.error || T.unavailable, 'off');
         return;
       }
       if (!d.active){
         activeState = false;
         clearDot();
-        setPill(d.expired ? 'Teilen abgelaufen.' : 'Teilen beendet.', 'off');
+        setPill(d.expired ? T.expired : T.ended, 'off');
         return;
       }
       activeState = true;
@@ -198,7 +223,7 @@ $preview = isset($_GET['preview']);
         // Sofort "pausiert" anzeigen (nicht erst nach der Veraltet-Schwelle)
         if (d.lat != null && d.lng != null){ place(d.lat, d.lng, d.acc); lastAt = d.at; }
         setDotStale(true);
-        setPill('⏸ Teilen pausiert', 'off');
+        setPill(T.paused, 'off');
         return;
       }
       if (d.lat != null && d.lng != null){
@@ -206,10 +231,10 @@ $preview = isset($_GET['preview']);
         lastAt = d.at;
         renderFreshness(d.at);
       } else {
-        setPill('Warten auf Position…', 'live');
+        setPill(T.waiting, 'live');
       }
     } catch(e){
-      setPill('Verbindungsfehler.', 'off');
+      setPill(T.connError, 'off');
     }
   }
 

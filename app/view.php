@@ -7,6 +7,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/api/bootstrap.php';
 tl_session_start();
 
+// DE·EN-Umschaltung (?lang=…) — Token in ?t=… bleibt erhalten.
+if (tl_handle_lang_switch()) {
+    exit;
+}
+
 $token = (string) ($_GET['t'] ?? '');
 
 $st = db()->prepare(
@@ -20,7 +25,7 @@ $P = $token !== '' ? $st->fetch() : false;
 function view_message(string $html): void
 {
     http_response_code(404);
-    echo '<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">'
+    echo '<!DOCTYPE html><html lang="' . tl_lang() . '"><head><meta charset="utf-8">'
        . '<meta name="viewport" content="width=device-width,initial-scale=1">'
        . '<title>Tourlocate</title><style>body{margin:0;font-family:system-ui,sans-serif;'
        . 'background:#f4f6f8;color:#1a1a1a;display:flex;min-height:100vh;align-items:center;'
@@ -30,7 +35,9 @@ function view_message(string $html): void
 }
 
 if (!$P) {
-    view_message('<h1>Nicht gefunden</h1><p>Dieser Link ist ungültig oder wurde deaktiviert.</p>');
+    view_message('<h1>' . L('Nicht gefunden', 'Not found') . '</h1><p>'
+        . L('Dieser Link ist ungültig oder wurde deaktiviert.',
+             'This link is invalid or has been deactivated.') . '</p>');
 }
 
 $pid = (int) $P['id'];
@@ -42,7 +49,7 @@ if ($needsPassword && !$unlocked) {
     $csrf = csrf_token();
     ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="<?= tl_lang() ?>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -64,15 +71,16 @@ if ($needsPassword && !$unlocked) {
 <body>
 <div class="card">
   <h1><?= htmlspecialchars($P['title'], ENT_QUOTES) ?></h1>
-  <p>Diese Präsentation ist passwortgeschützt.</p>
+  <p><?= L('Diese Präsentation ist passwortgeschützt.', 'This presentation is password-protected.') ?></p>
   <form id="f">
-    <input id="pw" type="password" placeholder="Passwort" autocomplete="off" autofocus>
-    <button type="submit">Ansehen</button>
+    <input id="pw" type="password" placeholder="<?= L('Passwort', 'Password') ?>" autocomplete="off" autofocus>
+    <button type="submit"><?= L('Ansehen', 'View') ?></button>
   </form>
   <div class="msg" id="msg"></div>
 </div>
 <script>
 const TOKEN = <?= json_encode($token) ?>, CSRF = <?= json_encode($csrf) ?>;
+const ERR = <?= json_encode(L('Fehler.', 'Error.')) ?>;
 document.getElementById('f').addEventListener('submit', async (e) => {
   e.preventDefault();
   const msg = document.getElementById('msg'); msg.textContent = '';
@@ -82,7 +90,7 @@ document.getElementById('f').addEventListener('submit', async (e) => {
   });
   const data = await res.json().catch(()=>({}));
   if (data.ok) location.reload();
-  else msg.textContent = data.error || 'Fehler.';
+  else msg.textContent = data.error || ERR;
 });
 </script>
 </body>
@@ -102,9 +110,23 @@ $viewData = [
 ];
 $json = json_encode($viewData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 $json = str_replace('<', '\\u003c', $json); // nie </script> in der Payload
+
+// Strings für das Client-JS (als T-Objekt eingebettet) + Datums-Locale.
+$T = [
+    'myLocation'    => L('Mein Standort', 'My location'),
+    'locError'      => L('Standort konnte nicht ermittelt werden. Ist die Ortungsfreigabe im Browser erteilt?',
+                         'Could not determine your location. Is location access allowed in the browser?'),
+    'download'      => L('⤓ Bild herunterladen', '⤓ Download image'),
+    'station'       => L('Station', 'Stop'),
+    'link'          => L('Link', 'Link'),
+    'reportThanks'  => L('Danke — die Meldung wurde übermittelt.', 'Thank you — your report has been submitted.'),
+    'error'         => L('Fehler.', 'Error.'),
+    'connError'     => L('Verbindungsfehler.', 'Connection error.'),
+];
+$locale = tl_lang() === 'en' ? 'en-GB' : 'de-DE';
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="<?= tl_lang() ?>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -131,30 +153,32 @@ $json = str_replace('<', '\\u003c', $json); // nie </script> in der Payload
 <div id="bar">
   <img src="../img/logo.png" alt="" onerror="this.style.display='none'">
   <strong style="flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= htmlspecialchars($P['title'], ENT_QUOTES) ?></strong>
-  <a href="#" id="reportLink" style="font-size:12px;color:#888;white-space:nowrap">Inhalt melden</a>
-  <a href="impressum.php" style="font-size:12px;color:#888;white-space:nowrap">Impressum</a>
+  <a href="<?= htmlspecialchars(tl_lang_switch_url(tl_lang() === 'de' ? 'en' : 'de'), ENT_QUOTES) ?>" style="font-size:12px;color:#888;white-space:nowrap"><?= tl_lang() === 'de' ? 'EN' : 'DE' ?></a>
+  <a href="#" id="reportLink" style="font-size:12px;color:#888;white-space:nowrap"><?= L('Inhalt melden', 'Report content') ?></a>
+  <a href="impressum.php" style="font-size:12px;color:#888;white-space:nowrap"><?= L('Impressum', 'Imprint') ?></a>
 </div>
 <div id="map"></div>
 
 <!-- Melde-Dialog -->
 <div id="reportModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:16px">
   <div style="background:#fff;border-radius:12px;padding:20px;max-width:420px;width:100%">
-    <strong>Inhalt melden</strong>
-    <p style="font-size:13px;color:#555;margin:8px 0">Du hältst Inhalte dieser Seite für rechtswidrig
-    oder unangemessen? Beschreibe kurz das Problem — der Betreiber prüft die Meldung.</p>
-    <textarea id="reportReason" rows="4" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #cbd2d9;border-radius:7px;font:inherit" placeholder="Was ist das Problem? (mind. 10 Zeichen)"></textarea>
+    <strong><?= L('Inhalt melden', 'Report content') ?></strong>
+    <p style="font-size:13px;color:#555;margin:8px 0"><?= L(
+      'Du hältst Inhalte dieser Seite für rechtswidrig oder unangemessen? Beschreibe kurz das Problem — der Betreiber prüft die Meldung.',
+      'Do you consider content on this page unlawful or inappropriate? Briefly describe the problem — the operator will review the report.') ?></p>
+    <textarea id="reportReason" rows="4" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #cbd2d9;border-radius:7px;font:inherit" placeholder="<?= L('Was ist das Problem? (mind. 10 Zeichen)', 'What is the problem? (min. 10 characters)') ?>"></textarea>
     <select id="reportCategory" style="width:100%;box-sizing:border-box;margin-top:8px;padding:8px;border:1px solid #cbd2d9;border-radius:7px;font:inherit">
-      <option value="">Kategorie wählen (optional) …</option>
-      <option value="urheberrecht">Urheberrecht</option>
-      <option value="persoenlichkeit">Persönlichkeitsrecht / Privatsphäre</option>
-      <option value="gewalt_hass">Gewalt / Hass</option>
-      <option value="spam">Spam / Irreführung</option>
-      <option value="sonstiges">Sonstiges</option>
+      <option value=""><?= L('Kategorie wählen (optional) …', 'Choose a category (optional) …') ?></option>
+      <option value="urheberrecht"><?= L('Urheberrecht', 'Copyright') ?></option>
+      <option value="persoenlichkeit"><?= L('Persönlichkeitsrecht / Privatsphäre', 'Personal rights / privacy') ?></option>
+      <option value="gewalt_hass"><?= L('Gewalt / Hass', 'Violence / hate') ?></option>
+      <option value="spam"><?= L('Spam / Irreführung', 'Spam / misleading') ?></option>
+      <option value="sonstiges"><?= L('Sonstiges', 'Other') ?></option>
     </select>
-    <input id="reportEmail" type="email" placeholder="Deine E-Mail für Rückfragen (optional)" autocomplete="email" style="width:100%;box-sizing:border-box;margin-top:8px;padding:8px;border:1px solid #cbd2d9;border-radius:7px;font:inherit">
+    <input id="reportEmail" type="email" placeholder="<?= L('Deine E-Mail für Rückfragen (optional)', 'Your email for follow-up questions (optional)') ?>" autocomplete="email" style="width:100%;box-sizing:border-box;margin-top:8px;padding:8px;border:1px solid #cbd2d9;border-radius:7px;font:inherit">
     <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">
-      <button id="reportCancel" style="padding:8px 12px;border:1px solid #cbd2d9;border-radius:7px;background:#fff;cursor:pointer">Abbrechen</button>
-      <button id="reportSend" style="padding:8px 12px;border:0;border-radius:7px;background:#c0392b;color:#fff;font-weight:600;cursor:pointer">Melden</button>
+      <button id="reportCancel" style="padding:8px 12px;border:1px solid #cbd2d9;border-radius:7px;background:#fff;cursor:pointer"><?= L('Abbrechen', 'Cancel') ?></button>
+      <button id="reportSend" style="padding:8px 12px;border:0;border-radius:7px;background:#c0392b;color:#fff;font-weight:600;cursor:pointer"><?= L('Melden', 'Report') ?></button>
     </div>
     <div id="reportMsg" style="font-size:13px;min-height:1em;margin-top:8px"></div>
   </div>
@@ -165,6 +189,8 @@ $json = str_replace('<', '\\u003c', $json); // nie </script> in der Payload
 <script>
 (function(){
   var D = JSON.parse(document.getElementById('tl-data').textContent);
+  var T = <?= json_encode($T, JSON_UNESCAPED_UNICODE) ?>;
+  var LOCALE = <?= json_encode($locale) ?>;
   function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
   // Nutzer-Link entschärfen: javascript:/data: usw. als href blockieren
   function safeUrl(u){ u=String(u==null?'':u).replace(/[\u0000-\u001F]/g,'').trim(); if(!u) return ''; if(/^(https?:|mailto:|tel:)/i.test(u)) return u; if(/^[a-z][a-z0-9+.-]*:/i.test(u)) return ''; return u; }
@@ -179,8 +205,8 @@ $json = str_replace('<', '\\u003c', $json); // nie </script> in der Payload
   (function(){
     var active=false, dot=null, ring=null, firstFix=true;
     var svg='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2b6cb0" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><line x1="12" y1="1.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22.5" y2="12"/></svg>';
-    var btn=L.DomUtil.create('a'); btn.href='#'; btn.title='Mein Standort';
-    btn.setAttribute('role','button'); btn.setAttribute('aria-label','Mein Standort');
+    var btn=L.DomUtil.create('a'); btn.href='#'; btn.title=T.myLocation;
+    btn.setAttribute('role','button'); btn.setAttribute('aria-label',T.myLocation);
     btn.innerHTML=svg; btn.style.cssText='display:flex;align-items:center;justify-content:center;width:30px;height:30px';
     function stop(){ active=false; map.stopLocate(); btn.style.background='';
       if(dot){map.removeLayer(dot);dot=null;} if(ring){map.removeLayer(ring);ring=null;} }
@@ -196,7 +222,7 @@ $json = str_replace('<', '\\u003c', $json); // nie </script> in der Payload
       if(firstFix){ map.setView(e.latlng, Math.max(map.getZoom(),15)); firstFix=false; }
     });
     map.on('locationerror', function(){ if(!active) return; stop();
-      alert('Standort konnte nicht ermittelt werden. Ist die Ortungsfreigabe im Browser erteilt?'); });
+      alert(T.locError); });
     var ctrl=L.control({position:'bottomright'});
     ctrl.onAdd=function(){ var d=L.DomUtil.create('div','leaflet-bar'); d.appendChild(btn); L.DomEvent.disableClickPropagation(d); return d; };
     ctrl.addTo(map);
@@ -209,7 +235,7 @@ $json = str_replace('<', '\\u003c', $json); // nie </script> in der Payload
   W.appendChild(I);
   if (D.allowDownload) {
     var DLB=document.createElement('button');
-    DLB.type='button'; DLB.textContent='⤓ Bild herunterladen';
+    DLB.type='button'; DLB.textContent=T.download;
     DLB.style.cssText='padding:7px 14px;border:0;border-radius:6px;background:#2b6cb0;color:#fff;font:600 13px/1 system-ui,sans-serif;cursor:pointer';
     DLB.addEventListener('click', function(ev){
       ev.stopPropagation();
@@ -233,11 +259,11 @@ $json = str_replace('<', '\\u003c', $json); // nie </script> in der Payload
   (D.pois||[]).forEach(function(p,i){
     var icon=L.divIcon({className:'poi-num', html:String(i+1), iconSize:[26,26], iconAnchor:[13,13]});
     var m=L.marker([p.lat,p.lng],{icon:icon}).addTo(markers);
-    var title=(i+1)+'. '+(p.name||'Station');
+    var title=(i+1)+'. '+(p.name||T.station);
     var dateHtml='';
-    if (p.createdAt){ var d=new Date(p.createdAt); if(!isNaN(d)) dateHtml='<div class="tl-date">'+esc(d.toLocaleString('de-DE'))+'</div>'; }
+    if (p.createdAt){ var d=new Date(p.createdAt); if(!isNaN(d)) dateHtml='<div class="tl-date">'+esc(d.toLocaleString(LOCALE))+'</div>'; }
     var _lu=safeUrl(p.link);
-    var linkHtml=_lu?'<div><a href="'+esc(_lu)+'" target="_blank" rel="noopener">'+esc(p.linkText||'Link')+'</a></div>':'';
+    var linkHtml=_lu?'<div><a href="'+esc(_lu)+'" target="_blank" rel="noopener">'+esc(p.linkText||T.link)+'</a></div>':'';
     var imgHtml=p.img?'<div><button type="button" class="thumb" data-img="'+esc(p.img)+'" data-title="'+esc(title)+'"><span class="tl-thumb"><img src="'+esc(p.img)+'" alt=""></span></button></div>':'';
     m.bindPopup('<div class="tl-card"><strong>'+esc(title)+'</strong>'+dateHtml+linkHtml+imgHtml+'</div>');
   });
@@ -274,13 +300,13 @@ $json = str_replace('<', '\\u003c', $json); // nie </script> in der Payload
       var d = await res.json();
       if (d.ok) {
         m.style.color = '#1e7d34';
-        m.textContent = 'Danke — die Meldung wurde übermittelt.';
+        m.textContent = T.reportThanks;
         setTimeout(function(){ modal.style.display='none'; m.textContent='';
           document.getElementById('reportReason').value='';
           document.getElementById('reportCategory').value='';
           document.getElementById('reportEmail').value=''; }, 1800);
-      } else m.textContent = d.error || 'Fehler.';
-    } catch(e) { m.textContent = 'Verbindungsfehler.'; }
+      } else m.textContent = d.error || T.error;
+    } catch(e) { m.textContent = T.connError; }
   };
 })();
 </script>
