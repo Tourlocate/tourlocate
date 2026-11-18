@@ -25,7 +25,7 @@ if (!$isNew) {
 $csrf = csrf_token();
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="<?= tl_lang() ?>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -36,7 +36,12 @@ $csrf = csrf_token();
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-control-geocoder/dist/Control.Geocoder.css">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="icon" type="image/png" href="../img/logo.png">
-  <script>/* für Start-Ansicht „Zuletzt": diese Seite merken — aber nicht den
+  <script>/* Kontosprache an die JS-Karte/-Editor durchreichen (VOR den Modulen,
+       damit map-i18n beim Laden gleich die richtige Sprache nimmt). In der
+       User-Variante bestimmt das Konto die Sprache; der Editor hat daher
+       keinen eigenen Sprachknopf. */
+    try { localStorage.setItem('tl-lang', <?= json_encode(tl_lang()) ?>); } catch(e){}
+    /* für Start-Ansicht „Zuletzt": diese Seite merken — aber nicht den
        flüchtigen „Neu"-Modus (?new=1), sonst startete die App später in
        einem leeren Editor */
     try { if (!/[?&]new=/.test(location.search))
@@ -77,37 +82,37 @@ $csrf = csrf_token();
 </head>
 <body>
   <div id="tl-editbar">
-    <a class="back" href="dashboard.php" title="Zurück zum Dashboard">‹ Übersicht</a>
+    <a class="back" href="dashboard.php" title="<?= L('Zurück zum Dashboard', 'Back to the dashboard') ?>"><?= L('‹ Übersicht', '‹ Overview') ?></a>
     <img class="brand-img" src="../img/logo.png" alt="" onerror="this.style.display='none'">
-    <input id="titleInput" type="text" placeholder="Titel der Präsentation">
+    <input id="titleInput" type="text" placeholder="<?= L('Titel der Präsentation', 'Presentation title') ?>">
     <span id="saveStatus"></span>
-    <button id="shareBtn">Teilen</button>
-    <button id="saveBtn">Speichern</button>
+    <button id="shareBtn"><?= L('Teilen', 'Share') ?></button>
+    <button id="saveBtn"><?= L('Speichern', 'Save') ?></button>
   </div>
 
   <!-- Teilen-Dialog -->
   <div id="shareModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:16px">
     <div style="background:#fff;border-radius:12px;padding:22px;max-width:440px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <strong style="font-size:16px">Präsentation teilen</strong>
+        <strong style="font-size:16px"><?= L('Präsentation teilen', 'Share presentation') ?></strong>
         <button id="shareClose" style="border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:#666">×</button>
       </div>
       <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:12px">
-        <input type="checkbox" id="shareToggle"> Öffentlichen Link aktivieren
+        <input type="checkbox" id="shareToggle"> <?= L('Öffentlichen Link aktivieren', 'Enable public link') ?>
       </label>
       <div id="shareBody" style="display:none">
         <div style="display:flex;gap:6px;margin-bottom:12px">
           <input id="shareUrl" type="text" readonly style="flex:1;padding:8px;border:1px solid #cbd2d9;border-radius:7px;font:inherit;background:#f7f9fb">
-          <button id="shareCopy" style="padding:8px 12px;border:1px solid #cbd2d9;border-radius:7px;background:#fff;cursor:pointer">Kopieren</button>
+          <button id="shareCopy" style="padding:8px 12px;border:1px solid #cbd2d9;border-radius:7px;background:#fff;cursor:pointer"><?= L('Kopieren', 'Copy') ?></button>
         </div>
         <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:8px">
-          <input type="checkbox" id="sharePwToggle"> Mit Passwort schützen
+          <input type="checkbox" id="sharePwToggle"> <?= L('Mit Passwort schützen', 'Protect with password') ?>
         </label>
         <div id="sharePwRow" style="display:none;gap:6px">
-          <input id="sharePw" type="text" placeholder="Passwort" style="flex:1;padding:8px;border:1px solid #cbd2d9;border-radius:7px;font:inherit">
-          <button id="sharePwSave" style="padding:8px 12px;border:1px solid #2b6cb0;border-radius:7px;background:#2b6cb0;color:#fff;font-weight:600;cursor:pointer">Setzen</button>
+          <input id="sharePw" type="text" placeholder="<?= L('Passwort', 'Password') ?>" style="flex:1;padding:8px;border:1px solid #cbd2d9;border-radius:7px;font:inherit">
+          <button id="sharePwSave" style="padding:8px 12px;border:1px solid #2b6cb0;border-radius:7px;background:#2b6cb0;color:#fff;font-weight:600;cursor:pointer"><?= L('Setzen', 'Set') ?></button>
         </div>
-        <p style="font-size:12px;color:#667;margin:10px 0 0">Jeder mit diesem Link (und ggf. Passwort) kann die Präsentation ansehen — nur lesend.</p>
+        <p style="font-size:12px;color:#667;margin:10px 0 0"><?= L('Jeder mit diesem Link (und ggf. Passwort) kann die Präsentation ansehen — nur lesend.', 'Anyone with this link (and the password, if set) can view the presentation — read-only.') ?></p>
       </div>
       <div id="shareMsg" style="font-size:13px;color:#c0392b;min-height:1em;margin-top:8px"></div>
     </div>
@@ -117,7 +122,7 @@ $csrf = csrf_token();
   <div id="wcFilesModal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:16px">
     <div style="background:#fff;border-radius:12px;padding:20px 22px;max-width:480px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.3)">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <strong id="wcFilesTitle">Fotos im Ordner</strong>
+        <strong id="wcFilesTitle"><?= L('Fotos im Ordner', 'Photos in folder') ?></strong>
         <button id="wcFilesClose" style="border:0;background:none;font-size:22px;line-height:1;cursor:pointer;color:#666">×</button>
       </div>
       <ol id="wcFilesList" style="margin:0;padding-left:24px;overflow:auto;font-size:13px;line-height:1.7;word-break:break-all"></ol>
@@ -217,32 +222,40 @@ $csrf = csrf_token();
             <option value="original" data-i18n="imgOriginal">original</option>
           </select>
         </label>
-        <label class="sb-field"><span data-i18n="language">Sprache:</span>
+        <!-- Kein eigener Sprachknopf in der User-Variante: die Sprache kommt
+             aus dem Konto (Umschalter im Dashboard). Feld ausgeblendet. -->
+        <label class="sb-field" style="display:none"><span data-i18n="language">Sprache:</span>
           <button id="langBtn" title="Deutsch / English">EN</button>
         </label>
       </details>
 
       <details class="sb-sec" id="secWebdavConn">
-        <summary>Cloud-Ordner (automatisch)</summary>
-        <p class="sb-hint" style="margin:6px 0">Neue Fotos aus einem WebDAV-/Nextcloud-Ordner werden automatisch als Stationen ergänzt (alle paar Minuten; auch die beim Verbinden schon vorhandenen). <strong>„Jetzt abrufen"</strong> startet sofort. Unterordner werden nicht durchsucht. Als Passwort bitte ein <strong>App-Passwort</strong> verwenden, nicht dein Konto-Passwort: bei Nextcloud unter <em>Einstellungen → Sicherheit → „Neues App-Passwort erstellen"</em>. Du kannst für jede Verbindung ein eigenes anlegen und es einzeln widerrufen; bei aktivierter Zwei-Faktor-Anmeldung ist es ohnehin Pflicht. Es wird verschlüsselt auf dem Server gespeichert.</p>
-        <p class="sb-hint" style="margin:6px 0">Jedes Cloud-Foto wird <strong>nur einmal</strong> importiert: Löschst du eine so entstandene Station wieder, bleibt sie beim nächsten Abruf gelöscht (sonst würden einmal entfernte Fotos immer wieder auftauchen). Zum erneuten Holen dann „Fotos importieren" nutzen — oder, zum Einrichten/Testen, <strong>„Gelöschte erneut einlesen"</strong>.</p>
-        <label class="sb-field-col"><span>Ordner-URL:</span>
+        <summary><?= L('Cloud-Ordner (automatisch)', 'Cloud folder (automatic)') ?></summary>
+        <p class="sb-hint" style="margin:6px 0"><?= L(
+          'Neue Fotos aus einem WebDAV-/Nextcloud-Ordner werden automatisch als Stationen ergänzt (alle paar Minuten; auch die beim Verbinden schon vorhandenen). <strong>„Jetzt abrufen"</strong> startet sofort. Unterordner werden nicht durchsucht. Als Passwort bitte ein <strong>App-Passwort</strong> verwenden, nicht dein Konto-Passwort: bei Nextcloud unter <em>Einstellungen → Sicherheit → „Neues App-Passwort erstellen"</em>. Du kannst für jede Verbindung ein eigenes anlegen und es einzeln widerrufen; bei aktivierter Zwei-Faktor-Anmeldung ist es ohnehin Pflicht. Es wird verschlüsselt auf dem Server gespeichert.',
+          'New photos from a WebDAV/Nextcloud folder are added automatically as stations (every few minutes; including those already present when connecting). <strong>“Fetch now”</strong> starts immediately. Subfolders are not scanned. As the password please use an <strong>app password</strong>, not your account password: in Nextcloud under <em>Settings → Security → “Create new app password”</em>. You can create a separate one per connection and revoke it individually; with two-factor sign-in enabled it is required anyway. It is stored encrypted on the server.'
+        ) ?></p>
+        <p class="sb-hint" style="margin:6px 0"><?= L(
+          'Jedes Cloud-Foto wird <strong>nur einmal</strong> importiert: Löschst du eine so entstandene Station wieder, bleibt sie beim nächsten Abruf gelöscht (sonst würden einmal entfernte Fotos immer wieder auftauchen). Zum erneuten Holen dann „Fotos importieren" nutzen — oder, zum Einrichten/Testen, <strong>„Gelöschte erneut einlesen"</strong>.',
+          'Each cloud photo is imported <strong>only once</strong>: if you delete the resulting station, it stays deleted on the next fetch (otherwise removed photos would keep reappearing). To fetch one again, use “Import photos” — or, for setup/testing, <strong>“Re-import deleted”</strong>.'
+        ) ?></p>
+        <label class="sb-field-col"><span><?= L('Ordner-URL:', 'Folder URL:') ?></span>
           <input id="wcUrl" type="url" placeholder="https://cloud.example.org/remote.php/dav/files/USER/Ordner/">
         </label>
-        <label class="sb-field-col"><span>Benutzer:</span>
+        <label class="sb-field-col"><span><?= L('Benutzer:', 'User:') ?></span>
           <input id="wcUser" type="text" autocomplete="off">
         </label>
-        <label class="sb-field-col"><span title="In Nextcloud erstellen: Einstellungen → Sicherheit → „Neues App-Passwort". Pro Verbindung ein eigenes möglich, einzeln widerrufbar — nicht das Konto-Passwort.">App-Passwort:</span>
-          <input id="wcPass" type="password" autocomplete="off" placeholder="leer = unverändert">
+        <label class="sb-field-col"><span title="<?= L('In Nextcloud erstellen: Einstellungen → Sicherheit → „Neues App-Passwort". Pro Verbindung ein eigenes möglich, einzeln widerrufbar — nicht das Konto-Passwort.', 'Create in Nextcloud: Settings → Security → “New app password”. A separate one per connection is possible, individually revocable — not your account password.') ?>"><?= L('App-Passwort:', 'App password:') ?></span>
+          <input id="wcPass" type="password" autocomplete="off" placeholder="<?= L('leer = unverändert', 'empty = unchanged') ?>">
         </label>
         <div class="sb-row">
-          <button id="wcSaveBtn">Speichern</button>
-          <button id="wcTestBtn">Testen</button>
-          <button id="wcDeleteBtn" class="tl-danger">Entfernen</button>
+          <button id="wcSaveBtn"><?= L('Speichern', 'Save') ?></button>
+          <button id="wcTestBtn"><?= L('Testen', 'Test') ?></button>
+          <button id="wcDeleteBtn" class="tl-danger"><?= L('Entfernen', 'Remove') ?></button>
         </div>
         <div class="sb-row">
-          <button id="wcSyncBtn">Jetzt abrufen</button>
-          <button id="wcRescanBtn" title="Einrichtungs-/Fehlersuche-Hilfe: holt auch Fotos zurück, deren Station gelöscht wurde.">Gelöschte erneut einlesen</button>
+          <button id="wcSyncBtn"><?= L('Jetzt abrufen', 'Fetch now') ?></button>
+          <button id="wcRescanBtn" title="<?= L('Einrichtungs-/Fehlersuche-Hilfe: holt auch Fotos zurück, deren Station gelöscht wurde.', 'Setup/troubleshooting aid: also fetches back photos whose station was deleted.') ?>"><?= L('Gelöschte erneut einlesen', 'Re-import deleted') ?></button>
         </div>
         <p class="sb-hint" id="wcStatus" style="margin:6px 0"></p>
       </details>
