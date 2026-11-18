@@ -4,6 +4,12 @@
 declare(strict_types=1);
 require_once __DIR__ . '/api/bootstrap.php';
 
+// Sprachumschaltung (?lang=de|en) für nicht angemeldete Besucher: Cookie
+// setzen + sauber neu laden.
+if (tl_handle_lang_switch()) {
+    exit;
+}
+
 if (current_user_id() !== null) {
     header('Location: dashboard.php');
     exit;
@@ -23,17 +29,19 @@ if ($regMode === 'invite' && $inviteToken !== '') {
 $canRegister = $regMode === 'open' || ($regMode === 'invite' && $inviteValid);
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="<?= tl_lang() ?>">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tourlocate — Anmelden</title>
+<title>Tourlocate — <?= L('Anmelden', 'Sign in') ?></title>
 <link rel="icon" type="image/png" href="../img/logo.png">
 <style>
   body{margin:0;font-family:system-ui,sans-serif;background:#f4f6f8;color:#1a1a1a;
        display:flex;min-height:100vh;align-items:center;justify-content:center;padding:16px}
   .card{background:#fff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.1);
         padding:28px 26px;width:100%;max-width:360px}
+  .lang{text-align:right;font-size:12px;margin-bottom:4px}
+  .lang a{color:#889;text-decoration:none}
   .brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}
   .brand img{width:36px;height:36px;border-radius:50%}
   .brand strong{font-size:20px}
@@ -53,56 +61,80 @@ $canRegister = $regMode === 'open' || ($regMode === 'invite' && $inviteValid);
 </head>
 <body>
 <div class="card">
+  <div class="lang">
+<?php if (tl_lang() === 'en'): ?>
+    <a href="?lang=de">DE</a> · <strong>EN</strong>
+<?php else: ?>
+    <strong>DE</strong> · <a href="?lang=en">EN</a>
+<?php endif; ?>
+  </div>
   <div class="brand">
     <img src="../img/logo.png" alt="" onerror="this.style.display='none'">
     <strong>Tourlocate</strong>
   </div>
-  <h1 id="formTitle">Anmelden</h1>
+  <h1 id="formTitle"><?= L('Anmelden', 'Sign in') ?></h1>
   <form id="authForm" autocomplete="on">
-    <label for="email">E-Mail</label>
+    <label for="email"><?= L('E-Mail', 'Email') ?></label>
     <input id="email" name="email" type="email" required autocomplete="email">
-    <label for="password">Passwort</label>
+    <label for="password"><?= L('Passwort', 'Password') ?></label>
     <input id="password" name="password" type="password" required
            autocomplete="current-password" minlength="8">
     <div id="totpRow" style="display:none">
-      <label for="totpCode">Code aus der Authenticator-App (oder Recovery-Code)</label>
+      <label for="totpCode"><?= L('Code aus der Authenticator-App (oder Recovery-Code)', 'Code from your authenticator app (or a recovery code)') ?></label>
       <input id="totpCode" type="text" inputmode="numeric" autocomplete="one-time-code"
              placeholder="123456">
     </div>
     <label id="rememberRow" style="display:flex;align-items:center;gap:8px;font-weight:normal;margin:6px 0">
-      <input type="checkbox" id="rememberChk" style="width:auto;margin:0;flex:none"> Angemeldet bleiben
+      <input type="checkbox" id="rememberChk" style="width:auto;margin:0;flex:none"> <?= L('Angemeldet bleiben', 'Stay signed in') ?>
     </label>
     <!-- Nur im Registrieren-Modus sichtbar; Pflicht (required + Server-Prüfung) -->
     <label id="rulesRow" style="display:none;align-items:center;gap:8px;font-weight:normal;margin:6px 0">
       <input type="checkbox" id="rulesChk" style="width:auto;margin:0;flex:none">
-      <span>Ich akzeptiere die <a href="serverregeln.php" target="_blank" rel="noopener">Serverregeln</a></span>
+      <span><?= L('Ich akzeptiere die', 'I accept the') ?> <a href="serverregeln.php" target="_blank" rel="noopener"><?= L('Serverregeln', 'server rules') ?></a></span>
     </label>
-    <button type="submit" id="submitBtn">Anmelden</button>
+    <button type="submit" id="submitBtn"><?= L('Anmelden', 'Sign in') ?></button>
   </form>
   <div class="switch" id="switchLine">
-    <?php if ($canRegister): ?>Noch kein Konto? <a id="switchLink">Registrieren</a>
-    <?php elseif ($regMode === 'invite'): ?><span style="color:#889">Registrierung nur mit Einladung.</span>
+    <?php if ($canRegister): ?><?= L('Noch kein Konto?', 'No account yet?') ?> <a id="switchLink"><?= L('Registrieren', 'Sign up') ?></a>
+    <?php elseif ($regMode === 'invite'): ?><span style="color:#889"><?= L('Registrierung nur mit Einladung.', 'Registration by invitation only.') ?></span>
     <?php endif; ?>
   </div>
-  <div class="switch" id="forgotLine"><a id="forgotLink">Passwort vergessen?</a></div>
+  <div class="switch" id="forgotLine"><a id="forgotLink"><?= L('Passwort vergessen?', 'Forgot password?') ?></a></div>
   <div id="forgotBox" style="display:none;margin-top:12px;border-top:1px solid #eef2f6;padding-top:12px">
-    <label for="forgotEmail">E-Mail für den Link zum Zurücksetzen</label>
+    <label for="forgotEmail"><?= L('E-Mail für den Link zum Zurücksetzen', 'Email for the reset link') ?></label>
     <input id="forgotEmail" type="email" autocomplete="email">
-    <button type="button" id="forgotSendBtn">Link senden</button>
+    <button type="button" id="forgotSendBtn"><?= L('Link senden', 'Send link') ?></button>
     <div class="msg" id="forgotMsg"></div>
   </div>
   <div class="msg" id="msg"></div>
   <div style="margin-top:16px;text-align:center;font-size:12px">
-    <a href="impressum.php" style="color:#889">Impressum</a> ·
-    <a href="datenschutz.php" style="color:#889">Datenschutz</a> ·
-    <a href="serverregeln.php" style="color:#889">Serverregeln</a>
+    <a href="impressum.php" style="color:#889"><?= L('Impressum', 'Legal notice') ?></a> ·
+    <a href="datenschutz.php" style="color:#889"><?= L('Datenschutz', 'Privacy') ?></a> ·
+    <a href="serverregeln.php" style="color:#889"><?= L('Serverregeln', 'Server rules') ?></a>
     <span id="serverSwitchWrap" style="display:none"> ·
-      <a id="serverSwitchLink" style="color:#889;cursor:pointer">Server wechseln</a></span>
+      <a id="serverSwitchLink" style="color:#889;cursor:pointer"><?= L('Server wechseln', 'Switch server') ?></a></span>
   </div>
 </div>
 
 <script>
 const CSRF = <?= json_encode($csrf) ?>;
+const LANG = <?= json_encode(tl_lang()) ?>; // bei der Registrierung ans Konto
+// Übersetzte JS-Texte (serverseitig passend zur Seitensprache gewählt)
+const T = {
+  login:        <?= json_encode(L('Anmelden', 'Sign in')) ?>,
+  createAcct:   <?= json_encode(L('Konto erstellen', 'Create account')) ?>,
+  register:     <?= json_encode(L('Registrieren', 'Sign up')) ?>,
+  noAcct:       <?= json_encode(L('Noch kein Konto?', 'No account yet?')) ?>,
+  haveAcct:     <?= json_encode(L('Schon ein Konto?', 'Already have an account?')) ?>,
+  minChars:     <?= json_encode(L('mind. 12 Zeichen', 'at least 12 characters')) ?>,
+  moment:       <?= json_encode(L('Moment…', 'One moment…')) ?>,
+  sent:         <?= json_encode(L('Gesendet.', 'Sent.')) ?>,
+  error:        <?= json_encode(L('Fehler.', 'Error.')) ?>,
+  connErr:      <?= json_encode(L('Verbindungsfehler: ', 'Connection error: ')) ?>,
+  success:      <?= json_encode(L('Erfolgreich — weiter…', 'Success — continuing…')) ?>,
+  confirmCode:  <?= json_encode(L('Code bestätigen', 'Confirm code')) ?>,
+  switchServer: <?= json_encode(L('Verbindung zu diesem Server trennen und einen anderen wählen?', 'Disconnect from this server and choose a different one?')) ?>,
+};
 let mode = 'login'; // 'login' | 'register'
 
 const title = document.getElementById('formTitle');
@@ -128,21 +160,21 @@ function setMode(m) {
   rulesRow.style.display = (m === 'register') ? 'flex' : 'none';
   rulesChk.required = (m === 'register');
   if (m === 'login') {
-    title.textContent = 'Anmelden';
-    submitBtn.textContent = 'Anmelden';
-    switchLine.innerHTML = 'Noch kein Konto? <a id="switchLink">Registrieren</a>';
+    title.textContent = T.login;
+    submitBtn.textContent = T.login;
+    switchLine.innerHTML = T.noAcct + ' <a id="switchLink">' + T.register + '</a>';
     pwInput.autocomplete = 'current-password';
     // Login: Bestandskonten (8–11 Zeichen) nicht aussperren
     pwInput.minLength = 8;
     pwInput.placeholder = '';
   } else {
-    title.textContent = 'Konto erstellen';
-    submitBtn.textContent = 'Registrieren';
-    switchLine.innerHTML = 'Schon ein Konto? <a id="switchLink">Anmelden</a>';
+    title.textContent = T.createAcct;
+    submitBtn.textContent = T.register;
+    switchLine.innerHTML = T.haveAcct + ' <a id="switchLink">' + T.login + '</a>';
     pwInput.autocomplete = 'new-password';
     // Registrierung: neue Passwörter mind. 12 Zeichen
     pwInput.minLength = 12;
-    pwInput.placeholder = 'mind. 12 Zeichen';
+    pwInput.placeholder = T.minChars;
   }
   const sl = document.getElementById('switchLink');
   if (sl) sl.onclick = () => setMode(m === 'login' ? 'register' : 'login');
@@ -170,7 +202,7 @@ let awaiting2fa = false;
   if (!SC) return;
   document.getElementById('serverSwitchWrap').style.display = '';
   document.getElementById('serverSwitchLink').onclick = () => {
-    if (confirm('Verbindung zu diesem Server trennen und einen anderen wählen?')) {
+    if (confirm(T.switchServer)) {
       SC.clear();
     }
   };
@@ -190,7 +222,7 @@ document.getElementById('forgotSendBtn').onclick = async () => {
   const fm = document.getElementById('forgotMsg');
   const btn = document.getElementById('forgotSendBtn');
   fm.className = 'msg';
-  fm.textContent = 'Moment…';
+  fm.textContent = T.moment;
   btn.disabled = true;
   try {
     const res = await fetch('api/auth.php?action=forgotpassword', {
@@ -200,10 +232,10 @@ document.getElementById('forgotSendBtn').onclick = async () => {
     });
     const data = await res.json().catch(() => ({}));
     fm.className = data.ok ? 'msg ok' : 'msg err';
-    fm.textContent = data.ok ? (data.message || 'Gesendet.') : (data.error || 'Fehler.');
+    fm.textContent = data.ok ? (data.message || T.sent) : (data.error || T.error);
   } catch (err) {
     fm.className = 'msg err';
-    fm.textContent = 'Verbindungsfehler: ' + err.message;
+    fm.textContent = T.connErr + err.message;
   } finally {
     btn.disabled = false;
   }
@@ -213,7 +245,7 @@ document.getElementById('authForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   submitBtn.disabled = true;
   msg.className = 'msg';
-  msg.textContent = 'Moment…';
+  msg.textContent = T.moment;
   try {
     // Zweiter Schritt: nur den 2FA-Code schicken
     const action = awaiting2fa ? 'totp' : mode;
@@ -222,6 +254,7 @@ document.getElementById('authForm').addEventListener('submit', async (e) => {
       : { email: document.getElementById('email').value, password: pwInput.value, csrf: CSRF,
           remember: rememberChk.checked,
           rules: (mode === 'register' ? rulesChk.checked : undefined),
+          lang: (mode === 'register' ? LANG : undefined),
           invite: (mode === 'register' ? INVITE_TOKEN : undefined) };
     const res = await fetch('api/auth.php?action=' + action, {
       method: 'POST',
@@ -236,20 +269,20 @@ document.getElementById('authForm').addEventListener('submit', async (e) => {
       document.getElementById('rememberRow').style.display = 'none';
       document.getElementById('email').disabled = true;
       pwInput.disabled = true;
-      submitBtn.textContent = 'Code bestätigen';
+      submitBtn.textContent = T.confirmCode;
       msg.textContent = '';
       document.getElementById('totpCode').focus();
     } else if (data.ok) {
       msg.className = 'msg ok';
-      msg.textContent = 'Erfolgreich — weiter…';
+      msg.textContent = T.success;
       location.href = 'dashboard.php';
     } else {
       msg.className = 'msg err';
-      msg.textContent = data.error || 'Fehler.';
+      msg.textContent = data.error || T.error;
     }
   } catch (err) {
     msg.className = 'msg err';
-    msg.textContent = 'Verbindungsfehler: ' + err.message;
+    msg.textContent = T.connErr + err.message;
   } finally {
     submitBtn.disabled = false;
   }

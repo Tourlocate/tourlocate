@@ -228,10 +228,17 @@ function register(array $input): void
         json_error($problem);
     }
 
+    // Sprache fürs Konto: aus dem Formular (gewählte Seitensprache), sonst die
+    // per Cookie/Browser bestimmte. Steuert künftig Dashboard/Editor/Karte.
+    $lang = (string) ($input['lang'] ?? '');
+    if (!tl_lang_valid($lang)) {
+        $lang = tl_lang();
+    }
+
     $hash = password_hash($pass, PASSWORD_DEFAULT);
     try {
-        $st = db()->prepare('INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)');
-        $st->execute([$email, $hash, now_iso()]);
+        $st = db()->prepare('INSERT INTO users (email, password_hash, lang, created_at) VALUES (?, ?, ?, ?)');
+        $st->execute([$email, $hash, $lang, now_iso()]);
     } catch (PDOException $e) {
         // Nur eine echte UNIQUE-Verletzung heißt "Adresse vergeben";
         // andere DB-Fehler (fehlender Treiber o. Ä.) nicht verschleiern.
@@ -246,6 +253,7 @@ function register(array $input): void
     // tl_rate_fail auf rate_limits) würden lastInsertId() sonst überschreiben.
     $newUid = (int) db()->lastInsertId();
     tl_rate_fail($ipKey, 10); // jede Konto-Anlage zählt gegen das IP-Limit
+    tl_set_lang_cookie($lang); // Cookie an die Kontosprache angleichen
 
     // Einladung als verbraucht markieren (einmalig)
     if ($invite) {
