@@ -112,6 +112,14 @@ $csrf = csrf_token();
       </select>
     </label>
   </div>
+  <!-- Nur in der nativen App sichtbar (per JS eingeblendet): EXIF-Hinweis beim
+       Speichern von Fotos ins Geräte-Album -->
+  <div id="nativeSettings" style="display:none;margin:-10px 0 22px">
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555">
+      <input type="checkbox" id="dcimExifChk" style="width:auto;margin:0;flex:none">
+      <span><?= L('Beim Speichern von Fotos ins Geräte-Album den EXIF-Hinweis anzeigen', 'Show the EXIF notice when saving photos to the device album') ?></span>
+    </label>
+  </div>
   <div class="head">
     <h1><?= L('Meine Präsentationen', 'My presentations') ?></h1>
     <button class="primary" id="newBtn"><?= L('+ Neue Präsentation', '+ New presentation') ?></button>
@@ -591,6 +599,20 @@ document.getElementById('livePreviewBtn').onclick = () => {
   if (!sel) return;
   try { sel.value = localStorage.getItem('tlStartView') || 'dashboard'; } catch(e){}
   sel.onchange = function(){ try { localStorage.setItem('tlStartView', sel.value); } catch(e){} };
+})();
+
+// Native-App-Einstellung: EXIF-Hinweis beim Album-Speichern (dcimExifInfo in
+// map-settings, Schlüssel tl-dcimExifInfo). Nur in der Capacitor-App zeigen.
+(function(){
+  var Cap = window.Capacitor;
+  if (!(Cap && Cap.isNativePlatform && Cap.isNativePlatform())) return;
+  document.getElementById('nativeSettings').style.display = '';
+  var chk = document.getElementById('dcimExifChk');
+  try { chk.checked = (localStorage.getItem('tl-dcimExifInfo') || 'on') !== 'off'; }
+  catch(e){ chk.checked = true; }
+  chk.onchange = function(){
+    try { localStorage.setItem('tl-dcimExifInfo', chk.checked ? 'on' : 'off'); } catch(e){}
+  };
 })();
 // Diese Seite als „zuletzt geöffnet" merken (für die Start-Ansicht „Zuletzt").
 try { localStorage.setItem('tlLast', location.pathname + location.search); } catch(e){}
