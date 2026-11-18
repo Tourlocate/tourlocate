@@ -5,6 +5,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/i18n.php'; // tl_lang(), L('de','en') für alle Seiten
 
 function tl_session_start(): void
 {

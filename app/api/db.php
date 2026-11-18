@@ -94,7 +94,8 @@ function tl_migrate(PDO $pdo): void
 
     // Nachträgliche Spalten (SQLite: ADD COLUMN wirft, wenn schon da)
     foreach (['is_admin INTEGER NOT NULL DEFAULT 0', 'blocked INTEGER NOT NULL DEFAULT 0',
-              'totp_secret TEXT', 'totp_recovery_json TEXT'] as $col) {
+              'totp_secret TEXT', 'totp_recovery_json TEXT',
+              "lang TEXT NOT NULL DEFAULT 'de'"] as $col) {
         try {
             $pdo->exec("ALTER TABLE users ADD COLUMN $col");
         } catch (PDOException $e) {
