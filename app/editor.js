@@ -14,6 +14,8 @@ import { fileToTargetJpeg, dataURLToBytes } from '../js/map-utils.js';
 // Speichern/Übernehmen angelegt und die id dann hier eingetragen.
 let pid = window.TL_EDITOR.pid;
 const { csrf, isNew } = window.TL_EDITOR;
+const T = window.TL_EDITOR.t;            // dynamische Meldungen (de/en, aus editor.php)
+const LOCALE = window.TL_EDITOR.locale;  // 'de-DE' | 'en-GB' für Datums-/Zeitformate
 const $ = id => document.getElementById(id);
 
 // ---- Upload-Hook: Datei → ~200-KB-JPEG → Server → URL -----------------
@@ -36,7 +38,7 @@ async function imageStore(file, meta = {}) {
     method: 'POST', headers: { 'X-CSRF-Token': csrf }, body: fd
   });
   const data = await res.json().catch(() => ({}));
-  if (!data.ok) throw new Error(data.error || 'Upload fehlgeschlagen');
+  if (!data.ok) throw new Error(data.error || T.uploadFail);
   return data.url; // 'api/image.php?id=X' (relativ zu /app/)
 }
 
@@ -46,7 +48,7 @@ async function loadPresentation(map) {
     headers: { 'X-CSRF-Token': csrf }
   });
   const data = await res.json().catch(() => ({}));
-  if (!data.ok) { setStatus('Konnte Präsentation nicht laden.', true); return; }
+  if (!data.ok) { setStatus(T.loadFail, true); return; }
   const P = data.presentation;
 
   $('titleInput').value = P.title || '';
@@ -87,10 +89,10 @@ async function save(map) {
   try {
     await uploadBase64Images(map);
   } catch (e) {
-    setStatus('Bild-Upload fehlgeschlagen: ' + (e?.message || e), true);
+    setStatus(T.imgUploadFail + (e?.message || e), true);
     return;
   }
-  setStatus('Speichern…');
+  setStatus(T.saving);
   const pois = map.state.pois.map(p => ({
     lat: p.lat, lng: p.lng,
     name: p.name || '', link: p.link || '', linkText: p.linkText || '',
@@ -114,7 +116,7 @@ async function save(map) {
   });
   const data = await res.json().catch(() => ({}));
   if (data.ok) { markSaved(); document.title = 'Tourlocate — ' + data.title; }
-  else setStatus(data.error || 'Speichern fehlgeschlagen.', true);
+  else setStatus(data.error || T.saveFail, true);
 }
 
 // ---- „Neu": Übernahme aus der freien Karte --------------------------
@@ -133,7 +135,7 @@ function ensurePid(title) {
         body: JSON.stringify({ title: title || '', csrf })
       });
       const data = await res.json().catch(() => ({}));
-      if (!data.ok) throw new Error(data.error || 'Anlegen fehlgeschlagen.');
+      if (!data.ok) throw new Error(data.error || T.createFail);
       pid = data.id;
       return pid;
     })().catch(e => { pidPromise = null; throw e; }); // Fehler → neuer Versuch möglich
@@ -148,7 +150,7 @@ async function uploadBase64Images(map) {
   let n = 0;
   for (const p of pending) {
     n++;
-    setStatus('Bild ' + n + '/' + pending.length + ' wird übertragen…');
+    setStatus(T.img + ' ' + n + '/' + pending.length + ' ' + T.transferring);
     const bytes = dataURLToBytes(p.img);
     const file = new File([bytes], 'foto.jpg', { type: 'image/jpeg' });
     p.img = await imageStore(file, { lat: p.lat, lng: p.lng, date: p.createdAt });
@@ -192,14 +194,14 @@ async function initNewPresentation(map) {
   // scheitert etwas, überlebt der Zustand einen Reload (lieber ein
   // mögliches Duplikat als verlorene Stationen).
   try {
-    setStatus('Präsentation wird angelegt…');
+    setStatus(T.creatingPres);
     await ensurePid($('titleInput').value);
     await save(map);
     if (dirty) return; // save() ist gescheitert (Status zeigt den Fehler)
     sessionStorage.removeItem('tlHandoff');
     location.replace('editor.php?id=' + pid);
   } catch (e) {
-    setStatus('Übernahme fehlgeschlagen: ' + (e?.message || e), true);
+    setStatus(T.handoffFail + (e?.message || e), true);
   }
 }
 
@@ -210,8 +212,8 @@ function setStatus(text, isError = false) {
   el.textContent = text;
   el.style.color = isError ? '#c0392b' : '#4a5568';
 }
-function markDirty() { dirty = true; setStatus('Nicht gespeichert'); }
-function markSaved() { dirty = false; setStatus('Gespeichert ✓'); }
+function markDirty() { dirty = true; setStatus(T.notSaved); }
+function markSaved() { dirty = false; setStatus(T.saved); }
 
 // ---- Teilen (öffentlicher Link + Passwort) --------------------------
 function setupShare() {
@@ -249,7 +251,7 @@ function setupShare() {
   $('shareToggle').onchange = async (e) => {
     shareMsg('');
     const s = await shareApi(e.target.checked ? 'enable' : 'disable');
-    if (s.ok) render(s); else shareMsg(s.error || 'Fehler.');
+    if (s.ok) render(s); else shareMsg(s.error || T.error);
   };
 
   $('sharePwToggle').onchange = (e) => {
@@ -263,14 +265,14 @@ function setupShare() {
   $('sharePwSave').onclick = async () => {
     shareMsg('');
     const pw = $('sharePw').value;
-    if (!pw) { shareMsg('Bitte ein Passwort eingeben.'); return; }
+    if (!pw) { shareMsg(T.enterPassword); return; }
     const s = await shareApi('setpassword', { password: pw });
-    if (s.ok) { render(s); shareMsg(''); } else shareMsg(s.error || 'Fehler.');
+    if (s.ok) { render(s); shareMsg(''); } else shareMsg(s.error || T.error);
   };
 
   $('shareCopy').onclick = async () => {
-    try { await navigator.clipboard.writeText($('shareUrl').value); shareMsg('Link kopiert ✓'); }
-    catch { $('shareUrl').select(); document.execCommand('copy'); shareMsg('Link kopiert ✓'); }
+    try { await navigator.clipboard.writeText($('shareUrl').value); shareMsg(T.linkCopied); }
+    catch { $('shareUrl').select(); document.execCommand('copy'); shareMsg(T.linkCopied); }
   };
 }
 
@@ -298,27 +300,27 @@ function setupWebdavConn(map) {
     if (s.configured) {
       $('wcUrl').value = s.url || '';
       $('wcUser').value = s.username || '';
-      let txt = 'Verbindung aktiv.';
-      if (s.lastPollAt) txt += ' Letzter Abruf: ' + new Date(s.lastPollAt).toLocaleString('de-DE') + '.';
-      else txt += ' Wartet auf den ersten Cron-Lauf.';
-      if (s.lastError) { status(txt + ' Letzter Fehler: ' + s.lastError, true); return; }
+      let txt = T.connActive;
+      if (s.lastPollAt) txt += T.lastFetch + new Date(s.lastPollAt).toLocaleString(LOCALE) + '.';
+      else txt += T.waitingCron;
+      if (s.lastError) { status(txt + T.lastErr + s.lastError, true); return; }
       status(txt);
     } else {
-      status('Keine Verbindung hinterlegt.');
+      status(T.noConn);
     }
   };
 
   api('status').then(render);
 
   $('wcSaveBtn').onclick = async () => {
-    status('Speichern…');
+    status(T.saving);
     const s = await api('save', {
       url: $('wcUrl').value.trim(),
       username: $('wcUser').value.trim(),
       password: $('wcPass').value
     });
     if (s.ok) { $('wcPass').value = ''; render(s); }
-    else status(s.error || 'Fehler.', true);
+    else status(s.error || T.error, true);
   };
 
   // Details-Popup: alle Fotos im Ordner (können viele sein → eigenes Popup).
@@ -327,7 +329,7 @@ function setupWebdavConn(map) {
   $('wcFilesClose').onclick = closeFilesModal;
   filesModal.onclick = e => { if (e.target === filesModal) closeFilesModal(); };
   const showFilesModal = (files) => {
-    $('wcFilesTitle').textContent = 'Fotos im Ordner (' + files.length + ')';
+    $('wcFilesTitle').textContent = T.filesInFolder + ' (' + files.length + ')';
     const list = $('wcFilesList');
     list.textContent = '';
     files.forEach(name => {
@@ -339,7 +341,7 @@ function setupWebdavConn(map) {
   };
 
   $('wcTestBtn').onclick = async () => {
-    status('Teste Verbindung…');
+    status(T.testing);
     // Die AKTUELLEN Formularwerte mitschicken — so funktioniert „Testen"
     // auch vor dem ersten Speichern (leeres Passwort = gespeichertes nutzen).
     const s = await api('test', {
@@ -347,15 +349,15 @@ function setupWebdavConn(map) {
       username: $('wcUser').value.trim(),
       password: $('wcPass').value
     });
-    if (!s.ok) { status(s.error || 'Test fehlgeschlagen.', true); return; }
+    if (!s.ok) { status(s.error || T.testFail, true); return; }
     // Schlanke Rückmeldung + optionaler „Details"-Link (öffnet das Popup).
     const el = $('wcStatus');
     el.style.color = '#555';
-    el.textContent = 'Verbindung ok — ' + s.imageCount + ' JPEG(s) im Ordner gefunden. ';
+    el.textContent = T.connOk + s.imageCount + T.jpegsFound;
     const files = s.files || [];
     if (files.length) {
       const a = document.createElement('a');
-      a.href = '#'; a.textContent = 'Details';
+      a.href = '#'; a.textContent = T.details;
       a.style.cursor = 'pointer';
       a.onclick = (e) => { e.preventDefault(); showFilesModal(files); };
       el.appendChild(a);
@@ -363,10 +365,10 @@ function setupWebdavConn(map) {
   };
 
   $('wcDeleteBtn').onclick = async () => {
-    if (!confirm('Cloud-Verbindung entfernen? (Bereits importierte Bilder bleiben erhalten.)')) return;
+    if (!confirm(T.confirmRemoveConn)) return;
     const s = await api('delete', {});
     if (s.ok) { $('wcUrl').value = ''; $('wcUser').value = ''; $('wcPass').value = ''; render(s); }
-    else status(s.error || 'Fehler.', true);
+    else status(s.error || T.error, true);
   };
 
   // Die serverseitig importierten Stationen SOFORT in die laufende Karte
@@ -391,13 +393,13 @@ function setupWebdavConn(map) {
   // Gründen — hilft bei „nichts kommt an"). skipDiag erklärt bei „ohne GPS",
   // was vom Server wirklich ankam (Größe/Content-Type/EXIF-Block).
   const reportSync = (imported, recovered, noGps, badImg, lastGetError, skipDiag) => {
-    const parts = [imported + ' Bild(er) importiert'];
-    if (recovered) parts.push(recovered + ' Station(en) wiederhergestellt');
-    if (noGps)  parts.push(noGps + ' ohne GPS-Daten übersprungen');
-    if (badImg) parts.push(badImg + ' nicht als JPEG lesbar (z. B. HEIC)');
+    const parts = [imported + T.imported];
+    if (recovered) parts.push(recovered + T.restored);
+    if (noGps)  parts.push(noGps + T.skippedNoGps);
+    if (badImg) parts.push(badImg + T.notJpeg);
     let msg = parts.join(', ') + '.';
-    if (noGps && skipDiag) msg += ' — vom Server kam: ' + skipDiag;
-    if (lastGetError) msg += ' Letzter Abruffehler: ' + lastGetError;
+    if (noGps && skipDiag) msg += T.fromServer + skipDiag;
+    if (lastGetError) msg += T.lastFetchErr + lastGetError;
     status(msg, imported === 0 && recovered === 0);
   };
 
@@ -405,9 +407,9 @@ function setupWebdavConn(map) {
   // also auch gelöschte Fotos zurück. Wird vom Knopf „Gelöschte erneut
   // einlesen" aufgerufen (nicht vom normalen „Jetzt abrufen").
   const runRescan = async () => {
-    status('Lese erneut ein…');
+    status(T.reReading);
     const s = await api('rescan', {});
-    if (!s.ok) { status(s.error || 'Erneutes Einlesen fehlgeschlagen.', true); return; }
+    if (!s.ok) { status(s.error || T.reReadFail, true); return; }
     applyNewPois(s.newPois);
     reportSync(s.imported, s.recovered || 0, s.skippedNoGps || 0, s.skippedBadImage || 0, s.lastGetError, s.skipDiag);
   };
@@ -428,14 +430,14 @@ function setupWebdavConn(map) {
       // Löschungen ignoriert (die Station gilt serverseitig noch als da →
       // „0 importiert", kein Wieder-Einfügen möglich).
       if (dirty) {
-        status('Speichere aktuellen Stand…');
+        status(T.savingState);
         await save(map);
-        if (dirty) { status('Speichern fehlgeschlagen — Abruf abgebrochen.', true); return; }
+        if (dirty) { status(T.fetchAborted, true); return; }
       }
       for (let round = 0; round < 60; round++) {
-        status('Rufe ab… (' + imported + ' importiert)');
+        status(T.fetching + imported + T.importedShort);
         const s = await api('sync', {});
-        if (!s.ok) { status(s.error || 'Abruf fehlgeschlagen.', true); return; }
+        if (!s.ok) { status(s.error || T.fetchFail, true); return; }
         listed = s.listed;
         imported += s.imported;
         recovered += (s.recovered || 0);
@@ -445,13 +447,13 @@ function setupWebdavConn(map) {
         if (Array.isArray(s.newPois)) newPois.push(...s.newPois);
         if (s.lastGetError) lastGetError = s.lastGetError;
         if (s.skipDiag && !skipDiag) skipDiag = s.skipDiag;
-        if (s.limitReached) { stopMsg = s.error || 'Bild-Limit erreicht.'; break; }
+        if (s.limitReached) { stopMsg = s.error || T.limitReached; break; }
         if (s.remaining <= 0) break;
         if (s.imported + s.skipped === 0) {
           // Kein Fortschritt mehr → Rest ließ sich nicht abrufen (GET-Fehler)
-          stopMsg = 'Abruf unvollständig — ' + s.remaining + ' Datei(en) ließen sich nicht '
-            + 'laden' + (lastGetError ? ' (' + lastGetError + ')' : '') + '. '
-            + imported + ' importiert.';
+          stopMsg = T.incompletePre + s.remaining + T.filesCouldntLoad
+            + (lastGetError ? ' (' + lastGetError + ')' : '') + '. '
+            + imported + T.importedSuffix;
           break;
         }
       }
@@ -460,7 +462,7 @@ function setupWebdavConn(map) {
       // einlesen"). Nichts Neues bearbeitet → schlichte Rückmeldung.
       applyNewPois(newPois); // genau einmal die neuen Stationen in die Karte
       if (stopMsg) status(stopMsg, true);
-      else if (imported === 0 && noGps === 0 && badImg === 0) status('Keine neuen Fotos im Ordner.');
+      else if (imported === 0 && noGps === 0 && badImg === 0) status(T.noNew);
       else reportSync(imported, recovered, noGps, badImg, lastGetError, skipDiag);
     } finally {
       btn.disabled = false;
@@ -472,16 +474,14 @@ function setupWebdavConn(map) {
   // und vorher den aktuellen Stand speichern (sonst arbeitet der Server auf
   // einem veralteten data_json).
   $('wcRescanBtn').onclick = async () => {
-    if (!confirm('Alle Fotos aus dem Cloud-Ordner erneut einlesen — auch solche, deren '
-      + 'Station du gelöscht hast?\n\nBereits vorhandene Stationen bleiben unverändert '
-      + '(keine Dubletten). Gedacht zum Einrichten/Testen.')) return;
+    if (!confirm(T.confirmRescan)) return;
     const btn = $('wcRescanBtn');
     btn.disabled = true;
     try {
       if (dirty) {
-        status('Speichere aktuellen Stand…');
+        status(T.savingState);
         await save(map);
-        if (dirty) { status('Speichern fehlgeschlagen — abgebrochen.', true); return; }
+        if (dirty) { status(T.saveAborted, true); return; }
       }
       await runRescan();
     } finally {
@@ -526,7 +526,7 @@ window.addEventListener('DOMContentLoaded', () => {
     btn.disabled = true;
     try {
       try { await ensurePid($('titleInput').value); }
-      catch (e) { setStatus('Anlegen fehlgeschlagen: ' + (e?.message || e), true); return; }
+      catch (e) { setStatus(T.createFailPfx + (e?.message || e), true); return; }
       await save(map);
       // URL sauber machen, damit ein Reload die angelegte Präsentation lädt.
       if (isNew && pid && location.search.indexOf('id=') === -1) {
