@@ -66,8 +66,6 @@ $csrf = csrf_token();
     #saveBtn{ background:#2b6cb0; color:#fff; border-color:#2b6cb0; font-weight:600; }
     #tl-main{ flex:1 1 auto; display:flex; flex-direction:row; min-height:0; }
     #map{ flex:1 1 auto; min-width:0; height:100%; }
-    /* WebDAV-Bereich kommt erst in einer späteren Scheibe */
-    #secWebdav { display:none; }
     /* Menü-Knopf unter die Editor-Kopfleiste, damit er den
        "‹ Übersicht"-Link oben links nicht verdeckt */
     #sidebarToggle { top:56px; }
@@ -258,22 +256,6 @@ $csrf = csrf_token();
           <button id="wcRescanBtn" title="<?= L('Einrichtungs-/Fehlersuche-Hilfe: holt auch Fotos zurück, deren Station gelöscht wurde.', 'Setup/troubleshooting aid: also fetches back photos whose station was deleted.') ?>"><?= L('Gelöschte erneut einlesen', 'Re-import deleted') ?></button>
         </div>
         <p class="sb-hint" id="wcStatus" style="margin:6px 0"></p>
-      </details>
-
-      <details id="secWebdav" class="sb-sec">
-        <summary data-i18n="secWebdav">WebDAV-Bilder (z. B. Nextcloud)</summary>
-        <label class="sb-field-col"><span data-i18n="webdavUrlLabel">Ordner-URL:</span>
-          <input id="webdavUrlInp" type="url">
-        </label>
-        <label class="sb-field-col"><span data-i18n="webdavUserLabel">Benutzer:</span>
-          <input id="webdavUserInp" type="text" autocomplete="off">
-        </label>
-        <label class="sb-field-col"><span data-i18n="webdavPassLabel">App-Passwort:</span>
-          <input id="webdavPassInp" type="password" autocomplete="off">
-        </label>
-        <div class="sb-row">
-          <button id="webdavImportBtn" data-i18n="webdavImport">Bilder importieren</button>
-        </div>
       </details>
 
       <div class="sb-foot">
