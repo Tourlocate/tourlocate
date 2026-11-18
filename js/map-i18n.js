@@ -63,6 +63,8 @@ const STRINGS = {
     appBackTitle: 'Zurück zur Übersicht',
     appCreatePh: 'Präsentation aus dieser Ansicht erstellen',
     appCreate: 'Erstellen',
+    demoBannerText: 'Kostenlose Demo — ohne Konto, Touren werden nicht gespeichert.',
+    demoBannerLink: 'Vollversion & Quellcode',
     appNeedPoi: 'Bitte zuerst mindestens eine Station auf der Karte setzen.',
     appHandoffFull: 'Die Stationen konnten nicht übergeben werden (zu viele/zu große Bilder). Bitte in den Einstellungen eine geringere Bildqualität wählen und es erneut versuchen.',
     // Seitenleiste
@@ -199,6 +201,8 @@ const STRINGS = {
     appBackTitle: 'Back to the overview',
     appCreatePh: 'Create a presentation from this view',
     appCreate: 'Create',
+    demoBannerText: 'Free demo — no account, tours are not saved.',
+    demoBannerLink: 'Full version & source code',
     appNeedPoi: 'Please place at least one station on the map first.',
     appHandoffFull: 'The stations could not be handed over (too many/too large images). Please choose a lower image quality in the settings and try again.',
     secStations: 'Stations',

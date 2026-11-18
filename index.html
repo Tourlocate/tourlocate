@@ -70,6 +70,21 @@
     <button id="tlAppCreate" data-i18n="appCreate">Erstellen</button>
   </div>
 
+  <!-- Demo-Hinweis: nur AUSSERHALB des App-Kontexts (?app) zeigen. Diese
+       statische Seite ist zugleich die GitHub-Pages-Demo
+       (tourlocate.github.io/tourlocate/); im Betrieb unter „/" leitet Apache
+       auf /app/ um, in der angemeldeten App ist ?app gesetzt → Banner aus. -->
+  <div id="tl-demo-banner" style="display:none">
+    <span data-i18n="demoBannerText">Kostenlose Demo — ohne Konto, Touren werden nicht gespeichert.</span>
+    <a href="https://github.com/Tourlocate/tourlocate" target="_blank" rel="noopener"
+       data-i18n="demoBannerLink">Vollversion &amp; Quellcode</a>
+  </div>
+  <script>
+    /* Banner nur in der Demo (kein ?app) einblenden. */
+    try { if (!/[?&]app(=|&|$)/.test(location.search))
+      document.getElementById('tl-demo-banner').style.display = ''; } catch(e){}
+  </script>
+
   <!-- Menü-Knopf (sichtbar, wenn die Seitenleiste zu ist) -->
   <button id="sidebarToggle" title="Menü">☰</button>
 
