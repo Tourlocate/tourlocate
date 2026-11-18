@@ -295,7 +295,61 @@ $csrf = csrf_token();
   <input type="file" id="fileGeo" accept=".geojson,.json,application/geo+json,application/json" hidden>
   <input type="file" id="fileGpx"  accept=".gpx,application/gpx+xml,application/xml" hidden>
 
-  <script>window.TL_EDITOR = { pid: <?= $pid ?>, csrf: <?= json_encode($csrf) ?>, isNew: <?= $isNew ? 'true' : 'false' ?> };</script>
+  <script>window.TL_EDITOR = {
+    pid: <?= $pid ?>, csrf: <?= json_encode($csrf) ?>, isNew: <?= $isNew ? 'true' : 'false' ?>,
+    locale: <?= json_encode(tl_lang() === 'en' ? 'en-GB' : 'de-DE') ?>,
+    // Dynamische Meldungen für editor.js (serverseitig zur Kontosprache gewählt)
+    t: {
+      uploadFail:       <?= json_encode(L('Upload fehlgeschlagen', 'Upload failed')) ?>,
+      loadFail:         <?= json_encode(L('Konnte Präsentation nicht laden.', 'Could not load the presentation.')) ?>,
+      imgUploadFail:    <?= json_encode(L('Bild-Upload fehlgeschlagen: ', 'Image upload failed: ')) ?>,
+      saving:           <?= json_encode(L('Speichern…', 'Saving…')) ?>,
+      saveFail:         <?= json_encode(L('Speichern fehlgeschlagen.', 'Saving failed.')) ?>,
+      createFail:       <?= json_encode(L('Anlegen fehlgeschlagen.', 'Creating failed.')) ?>,
+      createFailPfx:    <?= json_encode(L('Anlegen fehlgeschlagen: ', 'Creating failed: ')) ?>,
+      img:              <?= json_encode(L('Bild', 'Image')) ?>,
+      transferring:     <?= json_encode(L('wird übertragen…', 'is being transferred…')) ?>,
+      creatingPres:     <?= json_encode(L('Präsentation wird angelegt…', 'Creating presentation…')) ?>,
+      handoffFail:      <?= json_encode(L('Übernahme fehlgeschlagen: ', 'Transfer failed: ')) ?>,
+      notSaved:         <?= json_encode(L('Nicht gespeichert', 'Not saved')) ?>,
+      saved:            <?= json_encode(L('Gespeichert ✓', 'Saved ✓')) ?>,
+      error:            <?= json_encode(L('Fehler.', 'Error.')) ?>,
+      enterPassword:    <?= json_encode(L('Bitte ein Passwort eingeben.', 'Please enter a password.')) ?>,
+      linkCopied:       <?= json_encode(L('Link kopiert ✓', 'Link copied ✓')) ?>,
+      connActive:       <?= json_encode(L('Verbindung aktiv.', 'Connection active.')) ?>,
+      lastFetch:        <?= json_encode(L(' Letzter Abruf: ', ' Last fetch: ')) ?>,
+      waitingCron:      <?= json_encode(L(' Wartet auf den ersten Cron-Lauf.', ' Waiting for the first scheduled run.')) ?>,
+      lastErr:          <?= json_encode(L(' Letzter Fehler: ', ' Last error: ')) ?>,
+      noConn:           <?= json_encode(L('Keine Verbindung hinterlegt.', 'No connection configured.')) ?>,
+      filesInFolder:    <?= json_encode(L('Fotos im Ordner', 'Photos in folder')) ?>,
+      testing:          <?= json_encode(L('Teste Verbindung…', 'Testing connection…')) ?>,
+      testFail:         <?= json_encode(L('Test fehlgeschlagen.', 'Test failed.')) ?>,
+      connOk:           <?= json_encode(L('Verbindung ok — ', 'Connection OK — ')) ?>,
+      jpegsFound:       <?= json_encode(L(' JPEG(s) im Ordner gefunden. ', ' JPEG(s) found in the folder. ')) ?>,
+      details:          <?= json_encode(L('Details', 'Details')) ?>,
+      confirmRemoveConn:<?= json_encode(L('Cloud-Verbindung entfernen? (Bereits importierte Bilder bleiben erhalten.)', 'Remove cloud connection? (Already imported images are kept.)')) ?>,
+      imported:         <?= json_encode(L(' Bild(er) importiert', ' image(s) imported')) ?>,
+      restored:         <?= json_encode(L(' Station(en) wiederhergestellt', ' station(s) restored')) ?>,
+      skippedNoGps:     <?= json_encode(L(' ohne GPS-Daten übersprungen', ' skipped (no GPS data)')) ?>,
+      notJpeg:          <?= json_encode(L(' nicht als JPEG lesbar (z. B. HEIC)', ' not readable as JPEG (e.g. HEIC)')) ?>,
+      fromServer:       <?= json_encode(L(' — vom Server kam: ', ' — the server returned: ')) ?>,
+      lastFetchErr:     <?= json_encode(L(' Letzter Abruffehler: ', ' Last fetch error: ')) ?>,
+      reReading:        <?= json_encode(L('Lese erneut ein…', 'Re-reading…')) ?>,
+      reReadFail:       <?= json_encode(L('Erneutes Einlesen fehlgeschlagen.', 'Re-reading failed.')) ?>,
+      savingState:      <?= json_encode(L('Speichere aktuellen Stand…', 'Saving current state…')) ?>,
+      fetchAborted:     <?= json_encode(L('Speichern fehlgeschlagen — Abruf abgebrochen.', 'Saving failed — fetch aborted.')) ?>,
+      fetching:         <?= json_encode(L('Rufe ab… (', 'Fetching… (')) ?>,
+      importedShort:    <?= json_encode(L(' importiert)', ' imported)')) ?>,
+      fetchFail:        <?= json_encode(L('Abruf fehlgeschlagen.', 'Fetch failed.')) ?>,
+      incompletePre:    <?= json_encode(L('Abruf unvollständig — ', 'Fetch incomplete — ')) ?>,
+      filesCouldntLoad: <?= json_encode(L(' Datei(en) ließen sich nicht laden', ' file(s) could not be loaded')) ?>,
+      importedSuffix:   <?= json_encode(L(' importiert.', ' imported.')) ?>,
+      noNew:            <?= json_encode(L('Keine neuen Fotos im Ordner.', 'No new photos in the folder.')) ?>,
+      limitReached:     <?= json_encode(L('Bild-Limit erreicht.', 'Image limit reached.')) ?>,
+      saveAborted:      <?= json_encode(L('Speichern fehlgeschlagen — abgebrochen.', 'Saving failed — aborted.')) ?>,
+      confirmRescan:    <?= json_encode(L("Alle Fotos aus dem Cloud-Ordner erneut einlesen — auch solche, deren Station du gelöscht hast?\n\nBereits vorhandene Stationen bleiben unverändert (keine Dubletten). Gedacht zum Einrichten/Testen.", "Re-import all photos from the cloud folder — including those whose station you deleted?\n\nExisting stations stay unchanged (no duplicates). Intended for setup/testing.")) ?>,
+    }
+  };
 
   <!-- Live-Standort-Hinweis: zeigt überall an, dass gerade geteilt wird,
        und hält die Ortung beim Seitenwechsel am Laufen -->
