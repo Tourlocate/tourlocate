@@ -277,7 +277,13 @@ async function saveCaptureToAlbum(file) {
       album: ALBUM_NAME,
       fileName: 'tourlocate-' + Date.now()
     });
-    if (getSetting('albumConfirm') !== 'off') {
+    // Beim ERSTEN Speichern ein ausführliches Info-Popup (EXIF-Hinweis), danach
+    // nur noch der kurze Bestätigungs-Toast. Der EXIF-Hinweis ist im Dashboard
+    // wieder einschaltbar (Einstellung dcimExifInfo).
+    if (getSetting('dcimExifInfo') !== 'off') {
+      showDcimExifInfo();
+      setSetting('dcimExifInfo', 'off');
+    } else if (getSetting('albumConfirm') !== 'off') {
       showToast(t('albumSaved', { album: ALBUM_NAME }), {
         actionLabel: t('albumDontShow'),
         onAction: () => setSetting('albumConfirm', 'off')
@@ -287,6 +293,32 @@ async function saveCaptureToAlbum(file) {
     console.error('saveCaptureToAlbum:', e);
     showToast(t('albumSaveError'));
   }
+}
+
+// Einmaliger, ausführlicher Hinweis, dass Fotos MIT EXIF-Geodaten ins
+// Geräte-Album gespeichert werden (wiederverwendet die Hilfe-Overlay-Optik).
+function showDcimExifInfo() {
+  document.getElementById('tl-dcim-info')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'tl-dcim-info';
+  overlay.className = 'tl-help-overlay';
+  const box = document.createElement('div');
+  box.className = 'tl-help-box';
+  box.addEventListener('click', ev => ev.stopPropagation());
+  const h = document.createElement('h2');
+  h.textContent = t('dcimExifTitle');
+  const p = document.createElement('p');
+  p.textContent = t('dcimExifBody');
+  const ok = document.createElement('button');
+  ok.type = 'button';
+  ok.textContent = t('dcimExifOk');
+  ok.style.cssText = 'margin-top:14px;padding:8px 18px;border:0;border-radius:7px;'
+    + 'background:#2b6cb0;color:#fff;font:600 14px/1 system-ui,sans-serif;cursor:pointer';
+  ok.onclick = () => overlay.remove();
+  box.append(h, p, ok);
+  overlay.appendChild(box);
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
 }
 
 // ==================== Hilfe-Overlay ====================
