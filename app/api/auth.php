@@ -49,6 +49,18 @@ switch ($action) {
         logout_user();
         json_out(['ok' => true]);
         break;
+    case 'setlang':
+        // Sprache des angemeldeten Kontos ändern (Dashboard-Umschalter).
+        require_csrf($input);
+        $uidLang = require_login();
+        $lang = (string) ($input['lang'] ?? '');
+        if (!tl_lang_valid($lang)) {
+            json_error('Ungültige Sprache.');
+        }
+        db()->prepare('UPDATE users SET lang = ? WHERE id = ?')->execute([$lang, $uidLang]);
+        tl_set_lang_cookie($lang);
+        json_out(['ok' => true]);
+        break;
     case 'changepassword':
         require_csrf($input);
         change_password($input);
