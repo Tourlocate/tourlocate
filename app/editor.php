@@ -349,7 +349,7 @@ $csrf = csrf_token();
       saveAborted:      <?= json_encode(L('Speichern fehlgeschlagen — abgebrochen.', 'Saving failed — aborted.')) ?>,
       confirmRescan:    <?= json_encode(L("Alle Fotos aus dem Cloud-Ordner erneut einlesen — auch solche, deren Station du gelöscht hast?\n\nBereits vorhandene Stationen bleiben unverändert (keine Dubletten). Gedacht zum Einrichten/Testen.", "Re-import all photos from the cloud folder — including those whose station you deleted?\n\nExisting stations stay unchanged (no duplicates). Intended for setup/testing.")) ?>,
     }
-  };
+  };</script>
 
   <!-- Live-Standort-Hinweis: zeigt überall an, dass gerade geteilt wird,
        und hält die Ortung beim Seitenwechsel am Laufen -->
