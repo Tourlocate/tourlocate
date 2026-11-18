@@ -90,7 +90,24 @@ function tl_handle_lang_switch(): bool
         return false;
     }
     tl_set_lang_cookie($l);
-    $url = strtok($_SERVER['REQUEST_URI'] ?? '', '?'); // Pfad ohne Query
-    header('Location: ' . $url);
+    // Pfad + übrige Query-Parameter ohne lang (z. B. ?t=… bei view/verfolgen
+    // bleibt erhalten, sonst wäre nach dem Umschalten der Share-Token weg).
+    $uri  = $_SERVER['REQUEST_URI'] ?? '';
+    $path = strtok($uri, '?');
+    parse_str((string) parse_url($uri, PHP_URL_QUERY), $q);
+    unset($q['lang']);
+    $qs = http_build_query($q);
+    header('Location: ' . $path . ($qs !== '' ? '?' . $qs : ''));
     return true;
+}
+
+// URL der aktuellen Seite mit gesetztem ?lang=<to> (übrige Parameter bleiben).
+// Für den DE·EN-Umschalter auf Seiten ohne eigenes Konto.
+function tl_lang_switch_url(string $to): string
+{
+    $uri  = $_SERVER['REQUEST_URI'] ?? '';
+    $path = strtok($uri, '?');
+    parse_str((string) parse_url($uri, PHP_URL_QUERY), $q);
+    $q['lang'] = $to;
+    return $path . '?' . http_build_query($q);
 }
