@@ -737,6 +737,10 @@ export function setupUI(map) {
 
   // ==================== WebDAV ====================
   const bindWebdav = () => {
+    // Die User-Variante (Editor) hat diesen (proxy-basierten) WebDAV-Abschnitt
+    // nicht — dort läuft der Cloud-Import server-seitig (editor.js). Fehlt der
+    // Knopf, ist nichts zu verdrahten.
+    if (!$('webdavImportBtn')) return;
     [['webdavUrlInp', 'webdavUrl'], ['webdavUserInp', 'webdavUser'], ['webdavPassInp', 'webdavPass']]
       .forEach(([id, key]) => {
         const inp = $(id);
