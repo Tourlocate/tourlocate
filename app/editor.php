@@ -63,7 +63,6 @@ $csrf = csrf_token();
     /* Status füllt die Mitte und schiebt die Buttons nach rechts */
     #saveStatus{ flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis;
                  white-space:nowrap; text-align:right; font-size:13px; color:#4a5568; }
-    #saveBtn{ background:#2b6cb0; color:#fff; border-color:#2b6cb0; font-weight:600; }
     #tl-main{ flex:1 1 auto; display:flex; flex-direction:row; min-height:0; }
     #map{ flex:1 1 auto; min-width:0; height:100%; }
     /* Menü-Knopf unter die Editor-Kopfleiste, damit er den
@@ -74,7 +73,7 @@ $csrf = csrf_token();
     @media (max-width: 560px){
       #tl-editbar{ gap:8px; padding:8px 10px; }
       #tl-editbar .brand-img{ display:none; }
-      #shareBtn, #saveBtn{ padding:7px 10px; white-space:nowrap; }
+      #shareBtn{ padding:7px 10px; white-space:nowrap; }
     }
   </style>
 </head>
@@ -85,7 +84,6 @@ $csrf = csrf_token();
     <input id="titleInput" type="text" placeholder="<?= L('Titel der Präsentation', 'Presentation title') ?>">
     <span id="saveStatus"></span>
     <button id="shareBtn"><?= L('Teilen', 'Share') ?></button>
-    <button id="saveBtn"><?= L('Speichern', 'Save') ?></button>
   </div>
 
   <!-- Teilen-Dialog -->

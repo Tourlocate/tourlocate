@@ -205,15 +205,53 @@ async function initNewPresentation(map) {
   }
 }
 
-// ---- Status/Dirty-Anzeige -------------------------------------------
+// ---- Status/Dirty-Anzeige + Auto-Speichern --------------------------
+// Kein „Speichern"-Knopf mehr: jede Änderung wird automatisch gesichert
+// (entprellt). `loaded` verhindert ein Speichern WÄHREND des initialen
+// Aufbaus (das Anlegen der Stationen aus dem Server/der Übergabe löst
+// markDirty aus). `changeSeq` trennt „neue Änderungen kamen während des
+// Speicherns" von „Speichern ist gescheitert" — nur Ersteres plant erneut,
+// sonst würde ein dauerhafter Serverfehler alle 800 ms neu hämmern.
 let dirty = false;
+let loaded = false;
+let saving = false;
+let saveTimer = null;
+let changeSeq = 0;
+let mapRef = null;
+
 function setStatus(text, isError = false) {
   const el = $('saveStatus');
   el.textContent = text;
   el.style.color = isError ? '#c0392b' : '#4a5568';
 }
-function markDirty() { dirty = true; setStatus(T.notSaved); }
-function markSaved() { dirty = false; setStatus(T.saved); }
+function markDirty() { dirty = true; changeSeq++; setStatus(T.notSaved); scheduleSave(); }
+function markSaved() { dirty = false; loaded = true; setStatus(T.saved); }
+
+function scheduleSave() {
+  if (!loaded) return;                 // während des initialen Aufbaus nicht speichern
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(runAutosave, 800);
+}
+
+async function runAutosave() {
+  saveTimer = null;
+  if (saving || !dirty || !loaded || !mapRef) return;
+  saving = true;
+  const seq = changeSeq;               // Stand, den dieser Lauf abdeckt
+  try {
+    try { await ensurePid($('titleInput').value); }
+    catch (e) { setStatus(T.createFailPfx + (e?.message || e), true); return; }
+    await save(mapRef);                // setzt bei Erfolg markSaved(), sonst Fehlerstatus
+    // „Neu" ohne id in der URL → nach dem Anlegen sauber nachtragen
+    if (isNew && pid && location.search.indexOf('id=') === -1) {
+      history.replaceState(null, '', 'editor.php?id=' + pid);
+    }
+  } finally {
+    saving = false;
+    // Nur erneut planen, wenn WÄHREND des Speicherns neue Änderungen kamen.
+    if (changeSeq > seq) scheduleSave();
+  }
+}
 
 // ---- Teilen (öffentlicher Link + Passwort) --------------------------
 function setupShare() {
@@ -432,6 +470,7 @@ function setupWebdavConn(map) {
       // Löschungen ignoriert (die Station gilt serverseitig noch als da →
       // „0 importiert", kein Wieder-Einfügen möglich).
       if (dirty) {
+        clearTimeout(saveTimer);   // ein entprelltes Auto-Speichern nicht parallel laufen lassen
         status(T.savingState);
         await save(map);
         if (dirty) { status(T.fetchAborted, true); return; }
@@ -481,6 +520,7 @@ function setupWebdavConn(map) {
     btn.disabled = true;
     try {
       if (dirty) {
+        clearTimeout(saveTimer);   // ein entprelltes Auto-Speichern nicht parallel laufen lassen
         status(T.savingState);
         await save(map);
         if (dirty) { status(T.saveAborted, true); return; }
@@ -495,6 +535,7 @@ function setupWebdavConn(map) {
 // ---- Start -----------------------------------------------------------
 window.addEventListener('DOMContentLoaded', () => {
   const map = initMap();
+  mapRef = map;                 // für das Auto-Speichern
   setupPOIs(map);
   setupUI(map);
   setupIO(map);
@@ -521,23 +562,15 @@ window.addEventListener('DOMContentLoaded', () => {
   if (isNew) initNewPresentation(map);
   else loadPresentation(map);
 
-  // Im „Neu"-Modus ohne Übergabe erst beim Speichern die Präsentation
-  // anlegen. Button während des Laufs sperren (gegen Doppelklick).
-  $('saveBtn').onclick = async () => {
-    const btn = $('saveBtn');
-    btn.disabled = true;
-    try {
-      try { await ensurePid($('titleInput').value); }
-      catch (e) { setStatus(T.createFailPfx + (e?.message || e), true); return; }
-      await save(map);
-      // URL sauber machen, damit ein Reload die angelegte Präsentation lädt.
-      if (isNew && pid && location.search.indexOf('id=') === -1) {
-        history.replaceState(null, '', 'editor.php?id=' + pid);
-      }
-    } finally {
-      btn.disabled = false;
-    }
-  };
+  // Verbindungsart / Profil / Einzelbild-Download sind keine POI-Änderungen,
+  // lösen also onPoisChanged nicht aus — darum hier explizit als Änderung
+  // markieren, damit sie ebenfalls automatisch gespeichert werden. (Die
+  // programmatische Übernahme beim Laden setzt .value ohne 'change'-Event und
+  // speichert daher NICHT versehentlich.)
+  ['lineModeSel', 'profileSel', 'imgDownloadChk'].forEach(id => {
+    const el = $(id);
+    if (el) el.addEventListener('change', markDirty);
+  });
 
   // „Hilfe" führt im Editor zur ausführlichen Anleitung (hilfe.php) statt
   // zum Gesten-Overlay der statischen App — bei ungespeicherten Änderungen
