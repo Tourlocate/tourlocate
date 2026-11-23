@@ -59,8 +59,15 @@ fi
 # Volume und übersteht per „|| true" einen Fehllauf.
 (
   sleep 30   # kurz warten, bis Setup/Apache stehen
+  CRON_LOG=/var/lib/tourlocate/webdav-cron.log
   while true; do
-    su -s /bin/sh -c 'php /var/www/html/app/cron/poll-webdav.php >> /var/lib/tourlocate/webdav-cron.log 2>&1' www-data || true
+    # Einfache Log-Rotation ohne logrotate: wächst das Log über 5 MB, auf die
+    # letzten ~1 MB kürzen, damit es die Platte nicht unbegrenzt füllt.
+    if [ -f "$CRON_LOG" ] && [ "$(stat -c%s "$CRON_LOG" 2>/dev/null || echo 0)" -gt 5242880 ]; then
+      tail -c 1048576 "$CRON_LOG" > "$CRON_LOG.tmp" 2>/dev/null && mv "$CRON_LOG.tmp" "$CRON_LOG" || : > "$CRON_LOG"
+      chown www-data:www-data "$CRON_LOG" 2>/dev/null || true
+    fi
+    su -s /bin/sh -c "php /var/www/html/app/cron/poll-webdav.php >> $CRON_LOG 2>&1" www-data || true
     sleep 300
   done
 ) &
