@@ -76,6 +76,10 @@ select:disabled { opacity:.5; }
   white-space:nowrap;
 }
 #routeinfo:empty{ display:none; }
+/* In der Demo sitzt unten der blaue Banner (bottom:14px, umbricht schmal auf
+   mehrere Zeilen) — die Distanz-Pille deshalb oben einblenden statt am
+   verdeckten unteren Rand. */
+body.tl-demo #routeinfo{ top:10px; bottom:auto; }
 
 /* Demo-Hinweis (nur auf der GitHub-Pages-Demo bzw. der Seite ohne ?app;
    per JS in index.html eingeblendet). Über der KARTE zentriert, nicht über
