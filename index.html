@@ -102,6 +102,13 @@
       <button id="sidebarClose" title="Seitenleiste einklappen">«</button>
     </div>
 
+    <!-- Sprachumschalter gut sichtbar oben in der Leiste (nicht erst beim
+         Aufklappen der Einstellungen). Dieselbe #langBtn-Logik wie zuvor. -->
+    <div class="sb-lang">
+      <span data-i18n="language">Sprache:</span>
+      <button id="langBtn" title="Deutsch / English">EN</button>
+    </div>
+
     <p class="sb-hint" data-i18n="hint">Doppelklick / Rechtsklick (mobil: Tippen / lange drücken) = neue Station</p>
 
     <details open class="sb-sec">
@@ -182,9 +189,6 @@
           <option value="large" data-i18n="imgLarge">groß</option>
           <option value="original" data-i18n="imgOriginal">original</option>
         </select>
-      </label>
-      <label class="sb-field"><span data-i18n="language">Sprache:</span>
-        <button id="langBtn" title="Deutsch / English">EN</button>
       </label>
     </details>
 

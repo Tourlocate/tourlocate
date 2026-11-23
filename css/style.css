@@ -29,6 +29,15 @@ body:not(.sidebar-closed) #sidebarToggle{ display:none; }
 }
 .sb-hint{ margin:8px 12px; font-size:12px; color:#555; }
 
+/* Sprachumschalter: gut sichtbar oben in der Seitenleiste */
+.sb-lang{
+  display:flex; align-items:center; justify-content:flex-end; gap:8px;
+  margin:8px 12px 0; font-size:13px;
+}
+.sb-lang button{
+  min-width:54px; font-weight:700; color:#2b6cb0; border-color:#2b6cb0;
+}
+
 .sb-sec{ border-bottom:1px solid #eee; padding:0 12px 8px; }
 .sb-sec summary{
   cursor:pointer; font-weight:600; padding:8px 0; user-select:none;
