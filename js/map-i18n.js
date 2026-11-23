@@ -64,8 +64,8 @@ const STRINGS = {
     appCreatePh: 'Präsentation aus dieser Ansicht erstellen',
     appCreate: 'Erstellen',
     demoBannerText: 'Demoversion — ohne Konto, Touren werden nicht gespeichert.',
-    demoBannerCompare: 'Versionen vergleichen',
-    demoBannerLink: 'Vollversion & Quellcode',
+    demoBannerCompare: 'Versionsvergleich',
+    demoBannerLink: 'Vollversion-Download & Quellcode',
     appNeedPoi: 'Bitte zuerst mindestens eine Station auf der Karte setzen.',
     appHandoffFull: 'Die Stationen konnten nicht übergeben werden (zu viele/zu große Bilder). Bitte in den Einstellungen eine geringere Bildqualität wählen und es erneut versuchen.',
     // Seitenleiste
@@ -203,8 +203,8 @@ const STRINGS = {
     appCreatePh: 'Create a presentation from this view',
     appCreate: 'Create',
     demoBannerText: 'Free demo — no account, tours are not saved.',
-    demoBannerCompare: 'Compare editions',
-    demoBannerLink: 'Full version & source code',
+    demoBannerCompare: 'Version comparison',
+    demoBannerLink: 'Full version download & source code',
     appNeedPoi: 'Please place at least one station on the map first.',
     appHandoffFull: 'The stations could not be handed over (too many/too large images). Please choose a lower image quality in the settings and try again.',
     secStations: 'Stations',
@@ -305,15 +305,21 @@ export function formatDateTime(iso) {
   });
 }
 
-// Statische Elemente mit data-i18n / data-i18n-title übersetzen
+// Statische Elemente mit data-i18n / data-i18n-title übersetzen.
+// Fehlt ein Schlüssel (t() gibt dann den Schlüssel selbst zurück), bleibt der
+// im HTML stehende Text erhalten — so leckt bei veraltetem JS-Cache nie der
+// rohe Schlüsselname ins UI (z. B. „demoBannerCompare").
 export function applyI18n(root = document) {
   root.querySelectorAll('[data-i18n]').forEach(el => {
-    el.textContent = t(el.dataset.i18n);
+    const k = el.dataset.i18n, v = t(k);
+    if (v !== k) el.textContent = v;
   });
   root.querySelectorAll('[data-i18n-title]').forEach(el => {
-    el.title = t(el.dataset.i18nTitle);
+    const k = el.dataset.i18nTitle, v = t(k);
+    if (v !== k) el.title = v;
   });
   root.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
-    el.placeholder = t(el.dataset.i18nPlaceholder);
+    const k = el.dataset.i18nPlaceholder, v = t(k);
+    if (v !== k) el.placeholder = v;
   });
 }
