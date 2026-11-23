@@ -75,7 +75,11 @@ switch ($action) {
         break;
 
     case 'settings':
-        json_out(['ok' => true, 'registrationMode' => tl_registration_mode()]);
+        json_out([
+            'ok'               => true,
+            'registrationMode' => tl_registration_mode(),
+            'maxImages'        => tl_max_images_per_presentation(),
+        ]);
         break;
 
     case 'invites':
@@ -201,6 +205,17 @@ switch ($action) {
         tl_setting_set('registration_mode', $mode);
         tl_audit($aid, 'set_registration_mode', null, null, $mode);
         json_out(['ok' => true, 'registrationMode' => $mode]);
+        break;
+
+    case 'setmaximages':
+        // Obergrenze Bilder pro Präsentation (Hardware-/Speicherschutz).
+        $n = (int) ($input['maxImages'] ?? 0);
+        if ($n < 1 || $n > 100000) {
+            json_error('Bitte eine Zahl zwischen 1 und 100000 angeben.');
+        }
+        tl_setting_set('max_images_per_presentation', (string) $n);
+        tl_audit($aid, 'set_max_images', null, null, (string) $n);
+        json_out(['ok' => true, 'maxImages' => $n]);
         break;
 
     case 'createinvite':

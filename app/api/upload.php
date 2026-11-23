@@ -29,8 +29,8 @@ if (!$st->fetch()) {
 }
 
 // Obergrenze pro Präsentation (gleicher Wert wie beim Cloud-Import —
-// Überlastungsschutz, siehe max_images_per_presentation in der config)
-$imgLimit = (int) (tl_config()['max_images_per_presentation'] ?? 500);
+// Überlastungsschutz; admin-konfigurierbar, sonst config-Default)
+$imgLimit = tl_max_images_per_presentation();
 $st = db()->prepare('SELECT COUNT(*) FROM images WHERE presentation_id = ?');
 $st->execute([$pid]);
 if ((int) $st->fetchColumn() >= $imgLimit) {
