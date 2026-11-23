@@ -72,7 +72,6 @@ $csrf = csrf_token();
        Buttons kompakter, Status schrumpft mit Ellipse. */
     @media (max-width: 560px){
       #tl-editbar{ gap:8px; padding:8px 10px; }
-      #tl-editbar .brand-img{ display:none; }
       #shareBtn{ padding:7px 10px; white-space:nowrap; }
     }
   </style>
