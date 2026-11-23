@@ -49,6 +49,10 @@ function db(): PDO
     ]);
     $pdo->exec('PRAGMA journal_mode = WAL');
     $pdo->exec('PRAGMA foreign_keys = ON');
+    // Bei einer Schreib-Kollision (SQLite erlaubt nur EINEN Schreiber
+    // gleichzeitig) bis zu 5 s warten, statt sofort „database is locked" zu
+    // werfen. Wichtig für Mehrnutzerbetrieb (Autosave, Uploads, Live-Standort).
+    $pdo->exec('PRAGMA busy_timeout = 5000');
     tl_migrate($pdo);
     return $pdo;
 }

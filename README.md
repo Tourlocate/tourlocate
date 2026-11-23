@@ -160,6 +160,29 @@ Danach ist die Seite unter `http://localhost:8080/` (statische App) bzw. `http:/
 - **In Portainer**: unter „Stacks" → „Add stack" → „Web editor" den Inhalt von `docker-compose.yml` einfügen (Build-Kontext muss dabei auf das Repo zeigen, z. B. über „Repository" statt „Web editor" direkt aus Git deployen) und den Stack starten.
 - **`webdav-proxy.php`** (die ältere, proxy-basierte WebDAV-Anbindung der statischen App) funktioniert im Container ebenfalls, ganz ohne Zusatzkonfiguration — `php-curl` ist im Image enthalten.
 
+### Systemstabilität & stabiler Betrieb (Mehrnutzer-/Schulbetrieb)
+
+Tourlocate ist für mehrere hundert Konten mit bursthafter Nutzung (z. B. eine Schule) ausgelegt. Was dafür eingebaut ist und worauf man achten sollte:
+
+**Datenbank (SQLite).** Für diese Größenordnung reicht SQLite; Flaschenhals ist nicht die Nutzerzahl, sondern gleichzeitige *Schreibvorgänge* (SQLite erlaubt nur einen Schreiber zur Zeit). Darum:
+- **WAL-Modus** aktiv (Leser und Schreiber blockieren sich nicht) und **`busy_timeout = 5000`** (eine Schreib-Kollision wartet bis zu 5 s statt sofort „database is locked" zu werfen) — beides in `app/api/db.php`.
+- Eine eigene DB (PostgreSQL/MySQL) lohnt erst bei dauerhaft tausenden *gleichzeitig sehr aktiven Schreibern*. Schreibintensiv sind vor allem Live-Standort-Teilen, Foto-Uploads und das Editor-Autosave.
+
+**Container-Grenzen (Host-Schutz).** Falls der Container einmal „explodiert" (Speicherleck, Fork-Bombe, Lastspitze), begrenzen Grenzen in `docker-compose.yml` den Schaden auf den Container — der Host bleibt unberührt:
+- `mem_limit` (Standard `1g`, per `TOURLOCATE_MEM_LIMIT` überschreibbar), `cpus` (`TOURLOCATE_CPUS`, Standard `2`), `pids_limit: 512`, `security_opt: no-new-privileges`.
+- `restart: unless-stopped` + **Healthcheck** → ein hängender Container wird erkannt und neu gestartet.
+- **Log-Begrenzung**: Container-Logs via `logging`-Optionen gedeckelt; das `webdav-cron.log` im Volume wird bei > 5 MB automatisch gekürzt (Entrypoint).
+
+**PHP & Apache.** `docker/php-hardening.ini` setzt `memory_limit = 256M`, `max_execution_time = 60`, sowie Upload-Grenzen (`upload_max_filesize = 25M`, knapp über dem App-Limit `max_upload_bytes = 20 MB`, damit die App eine klare Fehlermeldung liefert). `docker/apache-tourlocate.conf` begrenzt die gleichzeitigen Worker (`MaxRequestWorkers 25`), damit Worker × `memory_limit` im Rahmen des `mem_limit` bleiben. Zusätzlich sind Shell-/Prozess-Funktionen in PHP abgeschaltet (Tiefenverteidigung).
+
+**Obergrenzen gegen Volllaufen.** Im **Admin-Bereich → „Grenzen"** lässt sich die **maximale Fotozahl pro Präsentation** festlegen (Standard 500 ≈ 100 MB) — begrenzt die Speicher-/Hardwareauslastung. Die Registrierung kann auf „nur mit Einladung" oder „geschlossen" gestellt werden.
+
+**Empfehlungen für den Produktivbetrieb:**
+- **HTTPS-Reverse-Proxy** davor (Caddy/nginx/Traefik), `TOURLOCATE_COOKIE_SECURE=true` (Standard).
+- **Daten-Volume isolieren**: `tourlocate_data` (SQLite + Uploads + Schlüssel) möglichst auf eine **eigene Partition/eigenes Volume** legen — läuft die Platte voll, beschädigt das sonst SQLite-Schreibvorgänge und kann den Host beeinträchtigen. Freien Platz überwachen.
+- **Backups** des Volumes einrichten **und den Restore einmal proben** (z. B. regelmäßig `sqlite3 tourlocate.sqlite ".backup …"` plus die `uploads/`, oder kontinuierlich via Litestream). Ohne Backup des Volumes sind Konten/Präsentationen/Schlüssel bei Verlust unwiderruflich weg.
+- **`mem_limit`/`cpus`** an die tatsächliche Hardware und erwartete Gleichzeitigkeit anpassen (per ENV, ohne die Datei zu ändern).
+
 ### E-Mail-Versand (optional, für „Passwort vergessen")
 
 Für die Selfservice-Funktion „Passwort vergessen" muss ein **SMTP-Zugang** hinterlegt werden — am besten ein **Transaktions-Mail-Dienst / SMTP-Relay** (gute Zustellbarkeit); nicht direkt von der VPS-IP senden. Ohne Konfiguration ist die Funktion einfach inaktiv (das Formular antwortet trotzdem neutral, verrät also nicht, ob eine Adresse existiert).
