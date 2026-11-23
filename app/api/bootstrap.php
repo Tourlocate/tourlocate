@@ -262,6 +262,21 @@ function tl_registration_mode(): string
     return in_array($m, ['open', 'invite', 'closed'], true) ? $m : 'open';
 }
 
+// Obergrenze Bilder pro Präsentation. Admin-konfigurierbar (app_settings,
+// im persistenten Volume → überlebt Deploys); fehlt der Wert, gilt der
+// config.php-Default (max_images_per_presentation, i. d. R. 500). Begrenzt die
+// Hardware-/Speicherauslastung (≈ 200 KB je Bild). Harte Plausibilitätsgrenzen
+// gegen Vertipper: mind. 1, höchstens 100000.
+function tl_max_images_per_presentation(): int
+{
+    $cfg = (int) (tl_config()['max_images_per_presentation'] ?? 500);
+    $v = tl_setting('max_images_per_presentation', null);
+    if ($v === null || !ctype_digit($v)) {
+        return $cfg;
+    }
+    return max(1, min(100000, (int) $v));
+}
+
 // ---- Passwort-Richtlinie --------------------------------------------
 //
 // Moderne Linie (NIST 800-63B): Länge zählt, nicht erzwungene Zeichen-

@@ -31,7 +31,9 @@ if (!function_exists('now_iso')) {
 
 function tl_images_limit(): int
 {
-    return (int) (tl_config()['max_images_per_presentation'] ?? 500);
+    // Admin-konfigurierbar (app_settings), sonst config-Default — siehe
+    // tl_max_images_per_presentation() in bootstrap.php.
+    return tl_max_images_per_presentation();
 }
 
 function tl_image_count(int $pid): int

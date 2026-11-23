@@ -95,6 +95,16 @@ $csrf = csrf_token();
     </div>
   </div>
 
+  <h1 style="margin-top:26px">Grenzen</h1>
+  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:10px">
+    <label style="font-size:14px">Maximale Fotos pro Präsentation
+      <input id="maxImages" type="number" min="1" max="100000" style="margin-left:8px;width:100px;padding:6px 8px;border:1px solid #cbd2d9;border-radius:6px;font:inherit">
+    </label>
+    <button id="maxImagesSave" style="margin-left:8px">Speichern</button>
+    <span id="maxImagesSaved" style="font-size:12px;color:#1e7d34;margin-left:10px"></span>
+    <p class="note" style="margin-top:8px">Begrenzt die Hardware- und Speicherauslastung (≈ 200 KB je Bild — z. B. 500 Fotos ≈ 100 MB). Gilt für Foto-Upload und Cloud-Import. Bestehende Präsentationen über dem Limit nehmen keine weiteren Bilder mehr auf.</p>
+  </div>
+
   <h1 style="margin-top:26px">Nutzerverwaltung</h1>
   <div class="note">Jeder Einblick in fremde Präsentationen und jede Verwaltungsaktion wird
   im Audit-Log protokolliert. Einsicht nur anlassbezogen vornehmen (z. B. bei einer
@@ -355,7 +365,19 @@ async function loadRegSettings() {
   if (!s.ok) return;
   regMode.value = s.registrationMode;
   inviteBlock.style.display = s.registrationMode === 'invite' ? 'block' : 'none';
+  document.getElementById('maxImages').value = s.maxImages;
 }
+
+document.getElementById('maxImagesSave').onclick = async () => {
+  const saved = document.getElementById('maxImagesSaved');
+  saved.style.color = '#1e7d34'; saved.textContent = '';
+  const s = await api('setmaximages', { maxImages: Number(document.getElementById('maxImages').value) });
+  if (s.ok) {
+    document.getElementById('maxImages').value = s.maxImages;
+    saved.textContent = 'Gespeichert ✓';
+    setTimeout(() => saved.textContent = '', 1800);
+  } else { saved.style.color = '#c0392b'; saved.textContent = s.error || 'Fehler.'; }
+};
 
 regMode.onchange = async () => {
   const s = await api('setmode', { mode: regMode.value });
