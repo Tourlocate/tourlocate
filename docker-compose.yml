@@ -17,7 +17,15 @@ services:
       # Datenverzeichnis AUSSERHALB des Web-Roots (keine URL zeigt darauf).
       # Dasselbe benannte Volume wie bisher — der Inhalt (DB, Uploads,
       # config.php) bleibt beim Umhängen erhalten.
+      #
+      # Hinweis: Das benannte Volume liegt standardmäßig auf der Host-Root-
+      # Platte (/var/lib/docker/volumes/…). Logisch ausgelagert, aber physisch
+      # auf derselben Platte wie das Host-OS — läuft es voll, trifft das den
+      # Host. Für ECHTE physische Trennung (volle Daten-Platte kann den Host
+      # nicht lahmlegen) stattdessen einen Bind-Mount auf eine eigene, separat
+      # gemountete Partition verwenden und die Zeile darunter aktivieren:
       - tourlocate_data:/var/lib/tourlocate
+      #- /mnt/tourlocate-data:/var/lib/tourlocate
     # Werte aus "Environment variables" (Portainer-Stack) oder einer .env
     # werden über die ${…}-Platzhalter eingesetzt. Nicht gesetzte Variablen
     # fallen auf den Standard hinter ":-" zurück — man muss also nur die

@@ -179,7 +179,7 @@ Tourlocate ist für mehrere hundert Konten mit bursthafter Nutzung (z. B. eine S
 
 **Empfehlungen für den Produktivbetrieb:**
 - **HTTPS-Reverse-Proxy** davor (Caddy/nginx/Traefik), `TOURLOCATE_COOKIE_SECURE=true` (Standard).
-- **Daten-Volume isolieren**: `tourlocate_data` (SQLite + Uploads + Schlüssel) möglichst auf eine **eigene Partition/eigenes Volume** legen — läuft die Platte voll, beschädigt das sonst SQLite-Schreibvorgänge und kann den Host beeinträchtigen. Freien Platz überwachen.
+- **Daten-Volume isolieren**: `tourlocate_data` (SQLite + Uploads + Schlüssel) liegt zwar außerhalb des Web-Roots, aber als benanntes Volume standardmäßig auf der **Host-Root-Platte**. Für echte physische Trennung (volle Daten-Platte kann den Host nicht lahmlegen) in `docker-compose.yml` den auskommentierten **Bind-Mount** auf eine eigene, separat gemountete Partition aktivieren. Freien Platz überwachen.
 - **Backups** des Volumes einrichten **und den Restore einmal proben** (z. B. regelmäßig `sqlite3 tourlocate.sqlite ".backup …"` plus die `uploads/`, oder kontinuierlich via Litestream). Ohne Backup des Volumes sind Konten/Präsentationen/Schlüssel bei Verlust unwiderruflich weg.
 - **`mem_limit`/`cpus`** an die tatsächliche Hardware und erwartete Gleichzeitigkeit anpassen (per ENV, ohne die Datei zu ändern).
 
