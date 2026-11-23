@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tourlocate — Versionsvergleich</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>">
+  <link rel="icon" type="image/png" href="img/logo.png">
+  <style>
+    :root {
+      --accent:#2b6cb0; --accent-dim:#1e4f8a;
+      --bg:#f5f8fc; --surface:#ffffff; --surface-alt:#f0f4f9;
+      --text:#1a2635; --text-muted:#55697c;
+      --border:#cdd8e5; --cat-bg:#e8eef6; --cat-text:#2b6cb0;
+      --yes-bg:#dcf5e8; --yes-text:#145c30;
+      --no-bg:#fde8e8; --no-text:#991b1b;
+      --part-bg:#dbeafe; --part-text:#1e40af;
+      --font: system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --accent:#60a5fa; --accent-dim:#93c5fd;
+        --bg:#0d1824; --surface:#132030; --surface-alt:#1a2a3c;
+        --text:#d9e8f5; --text-muted:#6e8fa8;
+        --border:#1f3348; --cat-bg:#1a2d40; --cat-text:#7ab8ef;
+        --yes-bg:#052e18; --yes-text:#4ade80;
+        --no-bg:#2d0a0a; --no-text:#f87171;
+        --part-bg:#0c1e38; --part-text:#93c5fd;
+      }
+    }
+
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    html, body { background:var(--bg); }
+    body {
+      font-family:var(--font); color:var(--text);
+      font-size:14px; line-height:1.5;
+      max-width:860px; margin:0 auto; padding:20px 18px 48px;
+    }
+
+    .topbar {
+      display:flex; align-items:center; justify-content:space-between;
+      gap:12px; margin-bottom:18px; flex-wrap:wrap;
+    }
+    .back {
+      color:var(--accent); text-decoration:none; font-weight:600;
+      white-space:nowrap;
+    }
+    .back:hover { text-decoration:underline; }
+    .lang-switch { display:flex; gap:4px; }
+    .lang-switch button {
+      border:1px solid var(--border); background:var(--surface);
+      color:var(--text-muted); font:inherit; font-size:12px; font-weight:600;
+      padding:4px 10px; border-radius:6px; cursor:pointer;
+    }
+    .lang-switch button[aria-pressed="true"] {
+      background:var(--accent); color:#fff; border-color:var(--accent);
+    }
+
+    header.hero { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+    .logo-mark {
+      width:38px; height:38px; background:var(--accent); border-radius:9px;
+      display:grid; place-items:center; flex:0 0 auto;
+    }
+    h1 { font-size:19px; font-weight:700; letter-spacing:-0.02em; }
+    h1 span {
+      display:block; font-size:12px; font-weight:400; color:var(--text-muted);
+      letter-spacing:0; margin-top:2px;
+    }
+
+    .legend { display:flex; gap:12px 16px; flex-wrap:wrap; margin-bottom:16px; }
+    .legend-item { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
+
+    .scroll-wrap {
+      overflow-x:auto; border-radius:10px; border:1px solid var(--border);
+      background:var(--surface); box-shadow:0 2px 12px rgba(0,0,0,.07);
+    }
+    table { width:100%; border-collapse:collapse; min-width:580px; }
+    col.feat { width:42%; }
+    col.v1, col.v2, col.v3 { width:19.3%; }
+
+    thead th {
+      padding:14px 14px 12px; text-align:left;
+      font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em;
+      color:var(--text-muted); border-bottom:2px solid var(--border);
+      background:var(--surface-alt); white-space:nowrap;
+    }
+    thead th:not(:first-child) {
+      text-align:center; color:var(--accent); font-size:12px; letter-spacing:.03em;
+    }
+    .th-sub {
+      display:block; font-size:10px; font-weight:400; text-transform:none;
+      letter-spacing:0; color:var(--text-muted); margin-top:2px;
+    }
+
+    tr.cat td {
+      background:var(--cat-bg); color:var(--cat-text); font-weight:700;
+      font-size:11px; text-transform:uppercase; letter-spacing:.08em;
+      padding:7px 14px 6px; border-top:1px solid var(--border);
+    }
+    tr.row td { padding:10px 14px; border-top:1px solid var(--border); vertical-align:middle; }
+    tr.row:hover td { background:var(--surface-alt); }
+    td.feat-label { font-size:13.5px; line-height:1.35; }
+    td.feat-label small { display:block; color:var(--text-muted); font-size:11.5px; margin-top:2px; }
+    td.feat-val { text-align:center; font-variant-numeric:tabular-nums; }
+
+    .chip {
+      display:inline-block; padding:3px 9px; border-radius:20px;
+      font-size:12px; font-weight:600; white-space:nowrap; line-height:1.4;
+    }
+    .chip-yes { background:var(--yes-bg); color:var(--yes-text); }
+    .chip-no { background:var(--no-bg); color:var(--no-text); }
+    .chip-part { background:var(--part-bg); color:var(--part-text); }
+
+    .footnotes { margin-top:16px; padding:0 2px; color:var(--text-muted); font-size:12px; line-height:1.6; }
+    .footnotes p { margin-top:4px; }
+    .footnotes code { background:var(--surface-alt); padding:1px 5px; border-radius:4px; font-size:11.5px; }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <a class="back" href="./" id="backLink">‹ Zur Demo</a>
+    <div class="lang-switch">
+      <button type="button" data-lang="de" aria-pressed="true">DE</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="logo-mark">
+      <svg width="21" height="21" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="10" cy="8" r="4" stroke="#fff" stroke-width="1.8"/>
+        <path d="M10 4v8M6 8h8" stroke="#fff" stroke-width="1.5" stroke-linecap="round" opacity=".5"/>
+        <path d="M10 18c-1.5-2.5-5-5.5-5-10" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M10 18c1.5-2.5 5-5.5 5-10" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <h1 id="pageTitle">Tourlocate<span id="pageSub"></span></h1>
+  </header>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="scroll-wrap">
+    <table>
+      <colgroup><col class="feat"><col class="v1"><col class="v2"><col class="v3"></colgroup>
+      <thead><tr id="headRow"></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="footnotes" id="footnotes"></div>
+
+  <script>
+  /* Zweisprachige Daten (de/en) in EINER Quelle — die Tabelle wird daraus
+     gerendert; der DE·EN-Umschalter rendert neu. localStorage-Schlüssel
+     'tl-lang' ist derselbe wie in der App, damit die Sprache konsistent ist. */
+  var YES={de:'✓',en:'✓'}, NO={de:'✗',en:'✗'};
+
+  var UI = {
+    sub:   { de:' — Versionsvergleich, Stand November 2026',
+             en:' — version comparison, as of November 2026' },
+    back:  { de:'‹ Zur Demo', en:'‹ Back to demo' },
+    cols:  {
+      v1: { de:['Demo / Standalone','kein Konto nötig'],
+            en:['Demo / standalone','no account needed'] },
+      v2: { de:['Userversion','mit Konten & Serverbereich'],
+            en:['User edition','accounts & server area'] },
+      v3: { de:['Android-App','nativ (Capacitor)'],
+            en:['Android app','native (Capacitor)'] },
+      feat:{ de:'Funktion', en:'Feature' }
+    },
+    legend: {
+      de:[['yes','verfügbar'],['no','nicht verfügbar'],['part','teilweise (Fußnote)']],
+      en:[['yes','available'],['no','not available'],['part','limited (footnote)']]
+    }
+  };
+
+  // Wert-Kürzel: 'y','n', oder 'part'/'text' mit Markierung
+  function cell(v){ return { y:'yes', n:'no' }[v] ? {k:{y:'yes',n:'no'}[v],mark:''} : v; }
+
+  var ROWS = [
+    { cat:{ de:'Tour-Planung & Export', en:'Tour planning & export' } },
+    { l:{de:'Stationen setzen, benennen, bearbeiten', en:'Add, name & edit stations'}, v:['y','y','y'] },
+    { l:{de:'Automatisches Routing', en:'Automatic routing'},
+      s:{de:'OSRM: Auto / Rad / zu Fuß, oder Luftlinie', en:'OSRM: car / bike / foot, or straight line'}, v:['y','y','y'] },
+    { l:{de:'Export GeoJSON / GPX', en:'Export GeoJSON / GPX'}, v:['y','y','y'] },
+    { l:{de:'Export Ein-Datei-HTML', en:'Single-file HTML export'},
+      s:{de:'offline-fähig, Karten-Snapshot eingebettet', en:'works offline, embedded map snapshot'}, v:['y','y','y'] },
+    { l:{de:'Export HTML + Bilder (ZIP)', en:'HTML + images (ZIP) export'}, v:['y','y','y'] },
+    { l:{de:'IMS/Moodle-Lernpaket', en:'IMS/Moodle learning package'}, v:['y','y','y'] },
+
+    { cat:{ de:'Fotos', en:'Photos' } },
+    { l:{de:'Lokale Fotos importieren', en:'Import local photos'},
+      s:{de:'Drag & Drop, GPS aus EXIF — inkl. HEIC/HEIF', en:'drag & drop, GPS from EXIF — incl. HEIC/HEIF'}, v:['y','y','y'] },
+    { l:{de:'Foto-Import per WebDAV / Nextcloud', en:'Photo import via WebDAV / Nextcloud'},
+      s:{de:'pro Präsentation ein frei wählbarer Ordner — aus beliebigen Nextcloud-Ordnern und sogar verschiedenen Instanzen (keine „ein Album pro App"-Grenze wie bei PhotoPrism, Nextcloud Memories & Co.)',
+         en:'a freely chosen folder per presentation — from any Nextcloud folders and even different instances (no "one album per app" limit as with PhotoPrism, Nextcloud Memories & co.)'},
+      v:['part','y','y'], mark:['¹','',''] },
+    { l:{de:'Automatischer Hintergrund-Abruf (Cron)', en:'Automatic background fetch (cron)'},
+      s:{de:'alle 5 Min neue Fotos aus dem Ordner, opt-in je Verbindung', en:'new photos every 5 min, opt-in per connection'}, v:['n','y','y'] },
+    { l:{de:'Foto aufnehmen (Gerätekamera)', en:'Take a photo (device camera)'}, v:['y','y','y'] },
+    { l:{de:'Aufnahme in Fotobibliothek (DCIM) speichern', en:'Save capture to photo library (DCIM)'}, v:['n','n','y'] },
+
+    { cat:{ de:'Standort & Teilen', en:'Location & sharing' } },
+    { l:{de:'Touren auf Server speichern', en:'Store tours on the server'}, v:['n','y','y'] },
+    { l:{de:'Tour als Präsentation veröffentlichen', en:'Publish tour as a presentation'},
+      s:{de:'öffentlicher Link, Galerie-Ansicht', en:'public link, gallery view'}, v:['n','y','y'] },
+    { l:{de:'Standort live teilen', en:'Share location live'},
+      s:{de:'Teilnehmer auf der Karte verfolgen', en:'follow participants on the map'}, v:['n','y','y'], mark:['','²',''] },
+    { l:{de:'Standort-Tracking im Hintergrund', en:'Background location tracking'},
+      s:{de:'läuft weiter bei gesperrtem Display / minimierter App', en:'keeps running with screen locked / app minimized'},
+      v:['n','n','y'], mark:['','²',''] },
+
+    { cat:{ de:'Verwaltung & Betrieb (mit Konto)', en:'Administration & operation (with account)' } },
+    { l:{de:'Rollen: Admin & Teilnehmer', en:'Roles: admin & participant'}, v:['n','y','y'] },
+    { l:{de:'Anmeldung mit Passwort + 2FA (TOTP)', en:'Login with password + 2FA (TOTP)'}, v:['n','y','y'] },
+    { l:{de:'Mehrere Wege zur Aufnahme', en:'Several ways to join'},
+      s:{de:'Selbstregistrierung, Einladung, manuelle Einschreibung', en:'self-registration, invitation, manual enrolment'}, v:['n','y','y'] },
+    { l:{de:'Mail-Relay (SMTP) einrichtbar', en:'Mail relay (SMTP) configurable'},
+      s:{de:'für Einladungen & Passwort-Reset', en:'for invitations & password reset'}, v:['n','y','y'] },
+    { l:{de:'Bearbeitbare Rechtstexte', en:'Editable legal texts'},
+      s:{de:'Serverregeln, Datenschutz, Impressum', en:'server rules, privacy, imprint'}, v:['n','y','y'] },
+    { l:{de:'Inhalte melden', en:'Report content'},
+      s:{de:'Meldefunktion für geteilte Galerien', en:'reporting for shared galleries'}, v:['n','y','y'] },
+
+    { cat:{ de:'Plattform & Voraussetzungen', en:'Platform & requirements' } },
+    { l:{de:'Sprache Deutsch / English', en:'Language German / English'}, v:['y','y','y'] },
+    { l:{de:'Läuft ohne eigenen Server', en:'Runs without your own server'},
+      s:{de:'statisch, auch von <code>file://</code> oder GitHub Pages', en:'static, even from <code>file://</code> or GitHub Pages'},
+      v:['y','n','y'], mark:['','','³'] },
+    { l:{de:'Server-Voraussetzung', en:'Server requirement'},
+      s:{de:'PHP + SQLite (Docker)', en:'PHP + SQLite (Docker)'},
+      v:[{de:'—',en:'—'},{de:'nötig',en:'required'},{de:'für Konto',en:'for account'}], free:true }
+  ];
+
+  var FOOT = {
+    de:[
+      '¹ <strong>WebDAV in der Demo/Standalone-Version:</strong> braucht <code>webdav-proxy.php</code> auf einem eigenen PHP-Server; auf der rein statischen GitHub-Pages-Demo nicht verfügbar.',
+      '² <strong>Live-Standort im Browser:</strong> funktioniert im Vordergrund, pausiert aber bei gesperrtem Display oder Tab im Hintergrund (Browser-Sandbox). Die Android-App läuft dank Vordergrunddienst durchgehend weiter.',
+      '³ <strong>Freie Karte in der App:</strong> der Planer läuft lokal ohne Server; nur die Konto-Funktionen (Speichern, Teilen, Verwaltung) brauchen die Serverinstanz — die Administration ist nach Login mit einem Admin-Konto auch in der App möglich.'
+    ],
+    en:[
+      '¹ <strong>WebDAV in the demo/standalone version:</strong> needs <code>webdav-proxy.php</code> on your own PHP server; not available on the purely static GitHub Pages demo.',
+      '² <strong>Live location in the browser:</strong> works in the foreground but pauses when the screen is locked or the tab is in the background (browser sandbox). The Android app keeps running thanks to a foreground service.',
+      '³ <strong>Free map in the app:</strong> the planner runs locally without a server; only the account features (saving, sharing, administration) need the server instance — administration is possible in the app too after logging in with an admin account.'
+    ]
+  };
+
+  function pick(x, lang){ return x && typeof x === 'object' ? (x[lang] ?? x.de) : x; }
+
+  function render(lang){
+    document.documentElement.lang = lang;
+    document.getElementById('pageSub').textContent = UI.sub[lang];
+    document.getElementById('backLink').textContent = UI.back[lang];
+
+    // Kopfzeile
+    var head = document.getElementById('headRow');
+    head.innerHTML = '';
+    var cols = [['feat'], ['v1'], ['v2'], ['v3']];
+    head.appendChild(Object.assign(document.createElement('th'), { textContent: UI.cols.feat[lang] }));
+    ['v1','v2','v3'].forEach(function(k){
+      var th = document.createElement('th');
+      th.innerHTML = UI.cols[k][lang][0] + '<span class="th-sub">' + UI.cols[k][lang][1] + '</span>';
+      head.appendChild(th);
+    });
+
+    // Legende
+    var leg = document.getElementById('legend');
+    leg.innerHTML = '';
+    UI.legend[lang].forEach(function(item){
+      var sym = item[0]==='yes' ? YES[lang] : item[0]==='no' ? NO[lang] : item[0]==='part' ? (lang==='de'?'teilw.':'partly') : '';
+      var el = document.createElement('div');
+      el.className = 'legend-item';
+      el.innerHTML = '<span class="chip chip-'+item[0]+'">'+sym+'</span> '+item[1];
+      leg.appendChild(el);
+    });
+
+    // Zeilen
+    var tb = document.getElementById('tbody');
+    tb.innerHTML = '';
+    ROWS.forEach(function(r){
+      var tr = document.createElement('tr');
+      if (r.cat){
+        tr.className = 'cat';
+        var td = document.createElement('td');
+        td.colSpan = 4; td.textContent = pick(r.cat, lang);
+        tr.appendChild(td);
+        tb.appendChild(tr); return;
+      }
+      tr.className = 'row';
+      var tdl = document.createElement('td');
+      tdl.className = 'feat-label';
+      tdl.innerHTML = pick(r.l, lang) + (r.s ? '<small>'+pick(r.s, lang)+'</small>' : '');
+      tr.appendChild(tdl);
+
+      r.v.forEach(function(val, i){
+        var td = document.createElement('td');
+        td.className = 'feat-val';
+        var mark = (r.mark && r.mark[i]) ? ' '+r.mark[i] : '';
+        if (r.free){
+          td.innerHTML = '<span class="chip chip-'+(pick(val,lang)==='—'?'no':'yes')+'">'+pick(val,lang)+'</span>';
+        } else {
+          var cls = val==='y' ? 'yes' : val==='n' ? 'no' : 'part';
+          var sym = val==='y' ? YES[lang] : val==='n' ? NO[lang] : (lang==='de'?'teilw.':'partly');
+          td.innerHTML = '<span class="chip chip-'+cls+'">'+sym+mark+'</span>';
+        }
+        tr.appendChild(td);
+      });
+      tb.appendChild(tr);
+    });
+
+    // Fußnoten
+    var fn = document.getElementById('footnotes');
+    fn.innerHTML = FOOT[lang].map(function(p){ return '<p>'+p+'</p>'; }).join('');
+
+    // Umschalter-Status
+    document.querySelectorAll('.lang-switch button').forEach(function(b){
+      b.setAttribute('aria-pressed', b.dataset.lang === lang ? 'true' : 'false');
+    });
+  }
+
+  // Startsprache: ?lang= → localStorage('tl-lang') → Browser → 'de'
+  function initialLang(){
+    try {
+      var q = new URLSearchParams(location.search).get('lang');
+      if (q === 'de' || q === 'en') return q;
+      var s = localStorage.getItem('tl-lang');
+      if (s === 'de' || s === 'en') return s;
+    } catch(e){}
+    return (navigator.language || 'de').slice(0,2) === 'en' ? 'en' : 'de';
+  }
+
+  document.querySelectorAll('.lang-switch button').forEach(function(b){
+    b.addEventListener('click', function(){
+      var lang = b.dataset.lang;
+      try { localStorage.setItem('tl-lang', lang); } catch(e){}
+      render(lang);
+    });
+  });
+
+  render(initialLang());
+  </script>
+</body>
+</html>
