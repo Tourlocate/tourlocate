@@ -136,6 +136,9 @@ switch ($action) {
         if (!in_array($ttl, TL_LIVE_TTLS, true)) {
             $ttl = 60;
         }
+        // Gesamt-Obergrenze (admin-konfigurierbar) auch schon beim Start wahren
+        // — falls das Maximum unter der größten Start-Dauer (8 h) liegt.
+        $ttl = min($ttl, tl_live_max_hours() * 60);
         $expires = gmdate('Y-m-d\TH:i:s\Z', time() + $ttl * 60);
 
         $pdo = db();
@@ -202,7 +205,7 @@ switch ($action) {
         // gewählte Dauer auf die RESTLAUFZEIT aufschlagen (gleicher Token,
         // damit der verschickte Link gültig bleibt).
         $st = db()->prepare(
-            'SELECT token, expires_at FROM live_shares
+            'SELECT token, expires_at, created_at FROM live_shares
               WHERE user_id = ? AND active = 1 AND expires_at > ?
               ORDER BY id DESC LIMIT 1'
         );
@@ -212,10 +215,16 @@ switch ($action) {
             json_error('Keine aktive Sitzung zum Verlängern.', 404);
         }
         $base    = max(strtotime($row['expires_at']), time());
-        $expires = gmdate('Y-m-d\TH:i:s\Z', $base + $ttl * 60);
+        $want    = $base + $ttl * 60;
+        // Harte Gesamt-Obergrenze: NIE über Start + Maximaldauer hinaus
+        // verlängern (verhindert das endlose +8-h-Stapeln).
+        $cap     = strtotime($row['created_at']) + tl_live_max_hours() * 3600;
+        $capped  = $want > $cap;
+        $expires = gmdate('Y-m-d\TH:i:s\Z', min($want, $cap));
         db()->prepare('UPDATE live_shares SET expires_at = ? WHERE token = ? AND user_id = ?')
             ->execute([$expires, $row['token'], $uid]);
-        json_out(['ok' => true, 'token' => $row['token'], 'expiresAt' => $expires]);
+        json_out(['ok' => true, 'token' => $row['token'], 'expiresAt' => $expires,
+                  'capped' => $capped, 'maxHours' => tl_live_max_hours()]);
     }
 
     case 'pause': {
