@@ -277,6 +277,33 @@ function tl_max_images_per_presentation(): int
     return max(1, min(100000, (int) $v));
 }
 
+// ---- Startseiten-Modus (nacktes „/") --------------------------------
+//
+// 'redirect' (Standard): Apache leitet „/" auf /app/ (Login) um.
+// 'demo': die statische Demo wird angezeigt (mit Link zur Vollversion).
+//
+// Als EINZIGE Quelle der Wahrheit dient eine Flag-Datei im Datenverzeichnis:
+// Der Apache-Rewrite prüft sie per RewriteCond (-f) und kann so OHNE DB-Zugriff
+// und ohne Neustart umschalten (siehe docker/apache-tourlocate.conf). Die
+// Datei liegt im persistenten Volume, überlebt also Deploys.
+function tl_landing_flag_path(): string
+{
+    return tl_data_dir() . '/landing-demo.flag';
+}
+function tl_landing_mode(): string
+{
+    return is_file(tl_landing_flag_path()) ? 'demo' : 'redirect';
+}
+function tl_set_landing_mode(string $mode): void
+{
+    $flag = tl_landing_flag_path();
+    if ($mode === 'demo') {
+        @touch($flag);
+    } else {
+        @unlink($flag);
+    }
+}
+
 // ---- Passwort-Richtlinie --------------------------------------------
 //
 // Moderne Linie (NIST 800-63B): Länge zählt, nicht erzwungene Zeichen-

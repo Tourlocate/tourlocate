@@ -79,6 +79,7 @@ switch ($action) {
             'ok'               => true,
             'registrationMode' => tl_registration_mode(),
             'maxImages'        => tl_max_images_per_presentation(),
+            'landingMode'      => tl_landing_mode(),
         ]);
         break;
 
@@ -216,6 +217,17 @@ switch ($action) {
         tl_setting_set('max_images_per_presentation', (string) $n);
         tl_audit($aid, 'set_max_images', null, null, (string) $n);
         json_out(['ok' => true, 'maxImages' => $n]);
+        break;
+
+    case 'setlanding':
+        // Startseite: 'redirect' (→ /app/ Login) oder 'demo' (statische Demo).
+        $mode = (string) ($input['mode'] ?? '');
+        if (!in_array($mode, ['redirect', 'demo'], true)) {
+            json_error('Ungültiger Modus.');
+        }
+        tl_set_landing_mode($mode);
+        tl_audit($aid, 'set_landing_mode', null, null, $mode);
+        json_out(['ok' => true, 'landingMode' => tl_landing_mode()]);
         break;
 
     case 'createinvite':
