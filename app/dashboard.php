@@ -273,6 +273,7 @@ const T = {
   liveSending:   <?= json_encode(L('Dein Standort wird gesendet, solange diese Seite oder der Editor geöffnet ist.', 'Your location is sent while this page or the editor is open.')) ?>,
   liveEnded:     <?= json_encode(L('Teilen beendet.', 'Sharing stopped.')) ?>,
   extended:      <?= json_encode(L('Verlängert ✓', 'Extended ✓')) ?>,
+  liveMaxReached:<?= json_encode(L('Maximale Dauer erreicht — nicht weiter verlängerbar.', 'Maximum duration reached — cannot extend further.')) ?>,
   copied:        <?= json_encode(L('Kopiert ✓', 'Copied ✓')) ?>,
   shareTitle:    <?= json_encode(L('Mein Live-Standort', 'My live location')) ?>,
   hours:         <?= json_encode(L('Std.', 'h')) ?>,
@@ -554,6 +555,7 @@ document.getElementById('liveExtendBtn').onclick = async () => {
   const d = await TLLiveShare.extend(ttl);
   if (!d.ok) { liveMsg.style.color = '#c0392b'; liveMsg.textContent = d.error || T.error; return; }
   liveTickExpiry();
+  if (d.capped) { liveMsg.style.color = '#8a5a00'; liveMsg.textContent = T.liveMaxReached; }
   const b = document.getElementById('liveExtendBtn');
   const t = b.textContent; b.textContent = T.extended;
   setTimeout(() => { b.textContent = t; }, 1500);

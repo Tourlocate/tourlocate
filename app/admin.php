@@ -109,6 +109,15 @@ $csrf = csrf_token();
     <button id="maxImagesSave" style="margin-left:8px"><?= L('Speichern', 'Save') ?></button>
     <span id="maxImagesSaved" style="font-size:12px;color:#1e7d34;margin-left:10px"></span>
     <p class="note" style="margin-top:8px"><?= L('Begrenzt die Hardware- und Speicherauslastung (≈ 200 KB je Bild — z. B. 500 Fotos ≈ 100 MB). Gilt für Foto-Upload und Cloud-Import. Bestehende Präsentationen über dem Limit nehmen keine weiteren Bilder mehr auf.', 'Limits hardware and storage load (≈ 200 KB per image — e.g. 500 photos ≈ 100 MB). Applies to photo upload and cloud import. Existing presentations over the limit accept no further images.') ?></p>
+
+    <div style="margin-top:14px;border-top:1px solid #eef2f6;padding-top:12px">
+      <label style="font-size:14px"><?= L('Maximale Dauer der Standortfreigabe (Stunden)', 'Maximum duration of a location share (hours)') ?>
+        <input id="liveMaxHours" type="number" min="1" max="168" style="margin-left:8px;width:90px;padding:6px 8px;border:1px solid #cbd2d9;border-radius:6px;font:inherit">
+      </label>
+      <button id="liveMaxSave" style="margin-left:8px"><?= L('Speichern', 'Save') ?></button>
+      <span id="liveMaxSaved" style="font-size:12px;color:#1e7d34;margin-left:10px"></span>
+      <p class="note" style="margin-top:8px"><?= L('Ab Start gerechnet. „Verlängern" kann die Freigabe nicht über dieses Maximum hinaus verlängern (Standard 24 Stunden).', 'Counted from the start. "Extend" cannot prolong a share beyond this maximum (default 24 hours).') ?></p>
+    </div>
   </div>
 
   <h1 style="margin-top:26px"><?= L('Startseite', 'Landing page') ?></h1>
@@ -443,7 +452,19 @@ async function loadRegSettings() {
   inviteBlock.style.display = s.registrationMode === 'invite' ? 'block' : 'none';
   document.getElementById('maxImages').value = s.maxImages;
   document.getElementById('landingMode').value = s.landingMode;
+  document.getElementById('liveMaxHours').value = s.liveMaxHours;
 }
+
+document.getElementById('liveMaxSave').onclick = async () => {
+  const saved = document.getElementById('liveMaxSaved');
+  saved.style.color = '#1e7d34'; saved.textContent = '';
+  const s = await api('setlivemax', { hours: Number(document.getElementById('liveMaxHours').value) });
+  if (s.ok) {
+    document.getElementById('liveMaxHours').value = s.liveMaxHours;
+    saved.textContent = T.saved;
+    setTimeout(() => saved.textContent = '', 1800);
+  } else { saved.style.color = '#c0392b'; saved.textContent = s.error || T.err; }
+};
 
 document.getElementById('landingMode').onchange = async (e) => {
   const saved = document.getElementById('landingModeSaved');

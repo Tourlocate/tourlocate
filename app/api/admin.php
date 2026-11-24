@@ -80,6 +80,7 @@ switch ($action) {
             'registrationMode' => tl_registration_mode(),
             'maxImages'        => tl_max_images_per_presentation(),
             'landingMode'      => tl_landing_mode(),
+            'liveMaxHours'     => tl_live_max_hours(),
         ]);
         break;
 
@@ -228,6 +229,17 @@ switch ($action) {
         tl_set_landing_mode($mode);
         tl_audit($aid, 'set_landing_mode', null, null, $mode);
         json_out(['ok' => true, 'landingMode' => tl_landing_mode()]);
+        break;
+
+    case 'setlivemax':
+        // Maximale Gesamtdauer einer Standortfreigabe in Stunden (1..168).
+        $h = (int) ($input['hours'] ?? 0);
+        if ($h < 1 || $h > 168) {
+            json_error('Bitte eine Zahl zwischen 1 und 168 (Stunden) angeben.');
+        }
+        tl_setting_set('live_max_hours', (string) $h);
+        tl_audit($aid, 'set_live_max_hours', null, null, (string) $h);
+        json_out(['ok' => true, 'liveMaxHours' => tl_live_max_hours()]);
         break;
 
     case 'createinvite':

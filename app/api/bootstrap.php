@@ -277,6 +277,18 @@ function tl_max_images_per_presentation(): int
     return max(1, min(100000, (int) $v));
 }
 
+// Maximale Gesamtdauer einer Standortfreigabe (ab Start), admin-konfigurierbar
+// (app_settings); Standard 24 Stunden. Begrenzt das endlose Verlängern.
+// Plausible Grenzen: 1 Stunde bis 7 Tage.
+function tl_live_max_hours(): int
+{
+    $v = tl_setting('live_max_hours', null);
+    if ($v === null || !ctype_digit($v)) {
+        return 24;
+    }
+    return max(1, min(168, (int) $v));
+}
+
 // ---- Startseiten-Modus (nacktes „/") --------------------------------
 //
 // 'redirect' (Standard): Apache leitet „/" auf /app/ (Login) um.
