@@ -111,6 +111,18 @@ $csrf = csrf_token();
     <p class="note" style="margin-top:8px"><?= L('Begrenzt die Hardware- und Speicherauslastung (≈ 200 KB je Bild — z. B. 500 Fotos ≈ 100 MB). Gilt für Foto-Upload und Cloud-Import. Bestehende Präsentationen über dem Limit nehmen keine weiteren Bilder mehr auf.', 'Limits hardware and storage load (≈ 200 KB per image — e.g. 500 photos ≈ 100 MB). Applies to photo upload and cloud import. Existing presentations over the limit accept no further images.') ?></p>
   </div>
 
+  <h1 style="margin-top:26px"><?= L('Startseite', 'Landing page') ?></h1>
+  <div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:10px">
+    <label style="font-size:14px"><?= L('Was sehen Besucher unter der nackten Adresse („/")?', 'What do visitors see at the bare address ("/")?') ?>
+      <select id="landingMode" style="margin-left:8px;padding:6px 8px;border:1px solid #cbd2d9;border-radius:6px;font:inherit">
+        <option value="redirect"><?= L('Direkt zur Anmeldung (Standard)', 'Straight to the login (default)') ?></option>
+        <option value="demo"><?= L('Demoversion zeigen (mit Link zur Vollversion)', 'Show the demo (with a link to the full version)') ?></option>
+      </select>
+    </label>
+    <span id="landingModeSaved" style="font-size:12px;color:#1e7d34;margin-left:10px"></span>
+    <p class="note" style="margin-top:8px"><?= L('Betrifft nur das nackte „/". Die angemeldete App und die direkten Adressen (z. B. /app/) bleiben unverändert erreichbar.', 'Affects only the bare "/". The logged-in app and direct addresses (e.g. /app/) remain reachable unchanged.') ?></p>
+  </div>
+
   <h1 style="margin-top:26px"><?= L('Nutzerverwaltung', 'User management') ?></h1>
   <div class="note"><?= L('Jeder Einblick in fremde Präsentationen und jede Verwaltungsaktion wird im Audit-Log protokolliert. Einsicht nur anlassbezogen vornehmen (z. B. bei einer Meldung wegen rechtswidriger Inhalte).', 'Every look into other users\' presentations and every administrative action is recorded in the audit log. Only inspect content when there is a specific reason (e.g. a report about unlawful content).') ?></div>
 
@@ -430,7 +442,19 @@ async function loadRegSettings() {
   regMode.value = s.registrationMode;
   inviteBlock.style.display = s.registrationMode === 'invite' ? 'block' : 'none';
   document.getElementById('maxImages').value = s.maxImages;
+  document.getElementById('landingMode').value = s.landingMode;
 }
+
+document.getElementById('landingMode').onchange = async (e) => {
+  const saved = document.getElementById('landingModeSaved');
+  saved.style.color = '#1e7d34'; saved.textContent = '';
+  const s = await api('setlanding', { mode: e.target.value });
+  if (s.ok) {
+    document.getElementById('landingMode').value = s.landingMode;
+    saved.textContent = T.saved;
+    setTimeout(() => saved.textContent = '', 1800);
+  } else { saved.style.color = '#c0392b'; saved.textContent = s.error || T.err; }
+};
 
 document.getElementById('maxImagesSave').onclick = async () => {
   const saved = document.getElementById('maxImagesSaved');
