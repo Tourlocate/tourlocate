@@ -160,6 +160,16 @@ Danach ist die Seite unter `http://localhost:8080/` (statische App) bzw. `http:/
 - **In Portainer**: unter „Stacks" → „Add stack" → „Web editor" den Inhalt von `docker-compose.yml` einfügen (Build-Kontext muss dabei auf das Repo zeigen, z. B. über „Repository" statt „Web editor" direkt aus Git deployen) und den Stack starten.
 - **`webdav-proxy.php`** (die ältere, proxy-basierte WebDAV-Anbindung der statischen App) funktioniert im Container ebenfalls, ganz ohne Zusatzkonfiguration — `php-curl` ist im Image enthalten.
 
+### Fertiges Image ziehen statt auf dem Server bauen (empfohlen)
+
+Statt das Image bei jedem Deploy auf dem Server zu bauen (`build: .`), kann ein von GitHub Actions **vorgebautes Image** aus der GitHub Container Registry (GHCR) gezogen werden. Das ist schneller, belastet den Server nicht mit Builds und erlaubt sauberes Pinnen/Zurückrollen über Versions-Tags.
+
+- Der Workflow [`.github/workflows/docker-image.yml`](.github/workflows/docker-image.yml) baut und pusht bei jedem Push auf `main` die Tags **`:latest`** und **`:main-<sha>`**, bei einem Git-Tag `vX.Y.Z` zusätzlich **`:vX.Y.Z`** (unveränderlich).
+- Einmalig: nach dem ersten Lauf das GHCR-Paket auf **public** stellen (GitHub → Repo → „Packages" → „Package settings" → „Change visibility"), damit Portainer ohne Zugangsdaten ziehen kann.
+- In `docker-compose.yml` `build: .` auskommentieren und `image: ghcr.io/tourlocate/tourlocate:latest` aktivieren. In Portainer lässt sich der Stack dann über den **Web-Editor** (editierbares YAML) fahren; „Image neu ziehen & neu deployen" holt den gewünschten Stand.
+- **Nicht jeder Merge ist eine Version:** `main`/`:latest` ist der laufende Stand; eine „Version" ist bewusst ein Git-Tag `vX.Y.Z`. Produktiv entweder `:latest` (immer neuester `main`, wie der bisherige Git-Build) **oder** einen festen `:vX.Y.Z` pinnen (du bestimmst, wann umgestellt wird, und kannst zurückrollen).
+- **Daten bleiben erhalten:** DB, Uploads und Schlüssel liegen im Volume `tourlocate_data` — unabhängig davon, ob das Image gebaut oder gezogen wird. Beim Umstieg einfach dasselbe Volume weiterverwenden.
+
 ### Systemstabilität & stabiler Betrieb (Mehrnutzer-/Schulbetrieb)
 
 Tourlocate ist für mehrere hundert Konten mit bursthafter Nutzung (z. B. eine Schule) ausgelegt. Was dafür eingebaut ist und worauf man achten sollte:
