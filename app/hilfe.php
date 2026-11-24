@@ -41,7 +41,7 @@ if (tl_handle_lang_switch()) {
        ohne Verlauf (direkter Aufruf) als Fallback zum Dashboard. -->
   <div class="topbar">
     <a href="dashboard.php" id="backLink" style="font-weight:600;text-decoration:none"><?= L('‹ Zurück', '‹ Back') ?></a>
-    <a href="<?= htmlspecialchars(tl_lang_switch_url(tl_lang() === 'de' ? 'en' : 'de'), ENT_QUOTES) ?>" style="font-size:13px;color:#888;text-decoration:none"><?= tl_lang() === 'de' ? 'EN' : 'DE' ?></a>
+    <span style="font-size:13px;color:#888"><?= tl_lang_switcher_links() ?></span>
   </div>
   <script>
     document.getElementById('backLink').onclick = function (e) {

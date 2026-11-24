@@ -94,7 +94,7 @@ $csrf = csrf_token();
   </div>
   <div>
     <span class="who"><?= htmlspecialchars($email, ENT_QUOTES) ?></span>
-    <span class="lang"><?php if (tl_lang() === 'en'): ?><a href="#" data-setlang="de">DE</a> · <strong>EN</strong><?php else: ?><strong>DE</strong> · <a href="#" data-setlang="en">EN</a><?php endif; ?></span>
+    <span class="lang"><?= tl_lang_switcher_setlang() ?></span>
     <a href="hilfe.php" style="margin-right:10px;color:#2b6cb0"><?= L('Hilfe', 'Help') ?></a>
     <?php if ($isAdmin): ?><a href="admin.php" style="margin-right:10px;color:#2b6cb0"><?= L('Administration', 'Administration') ?></a><?php endif; ?>
     <button id="logoutBtn"><?= L('Abmelden', 'Sign out') ?></button>

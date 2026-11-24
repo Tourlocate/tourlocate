@@ -85,7 +85,7 @@ $T = [
 <?php endif; ?>
   <img src="../img/logo.png" alt="" onerror="this.style.display='none'">
   <strong><?= htmlspecialchars($heading, ENT_QUOTES) ?><?= $preview ? L(' (Vorschau)', ' (Preview)') : '' ?></strong>
-  <a href="<?= htmlspecialchars(tl_lang_switch_url(tl_lang() === 'de' ? 'en' : 'de'), ENT_QUOTES) ?>" style="font-size:12px;color:#888;white-space:nowrap"><?= tl_lang() === 'de' ? 'EN' : 'DE' ?></a>
+  <span style="font-size:12px;color:#888;white-space:nowrap"><?= tl_lang_switcher_links() ?></span>
   <a href="impressum.php" style="font-size:12px;color:#888;white-space:nowrap"><?= L('Impressum', 'Imprint') ?></a>
 </div>
 <div id="map"></div>

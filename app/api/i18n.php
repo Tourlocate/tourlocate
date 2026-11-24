@@ -19,7 +19,27 @@ declare(strict_types=1);
 
 function tl_lang_valid(string $l): bool
 {
-    return $l === 'de' || $l === 'en';
+    return in_array($l, ['de', 'en', 'fr', 'es'], true);
+}
+
+// Anzeigenamen der Sprachen für den Umschalter.
+function tl_lang_names(): array
+{
+    return ['de' => 'DE', 'en' => 'EN', 'fr' => 'FR', 'es' => 'ES'];
+}
+
+// Wörterbuch einer Zusatzsprache (fr/es) laden: deutscher Quelltext → Übersetzung.
+// Datei app/api/lang/<lang>.php gibt ein Array zurück; fehlt sie, gilt ein
+// leeres Array (→ L() fällt auf Deutsch zurück). Ergebnis wird gecacht.
+function tl_translations(string $lang): array
+{
+    static $cache = [];
+    if (array_key_exists($lang, $cache)) {
+        return $cache[$lang];
+    }
+    $file = __DIR__ . '/lang/' . $lang . '.php';
+    $data = is_file($file) ? require $file : [];
+    return $cache[$lang] = is_array($data) ? $data : [];
 }
 
 function tl_lang(): string
@@ -47,19 +67,33 @@ function tl_lang(): string
     if (tl_lang_valid($c)) {
         return $lang = $c;
     }
-    // 3) Browser (grob: beginnt die Liste mit "en", dann Englisch)
+    // 3) Browser (grob: beginnt die Liste mit en/fr/es, dann diese Sprache)
     $al = strtolower(trim((string) ($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '')));
-    if (strncmp($al, 'en', 2) === 0) {
-        return $lang = 'en';
+    foreach (['en', 'fr', 'es'] as $cand) {
+        if (strncmp($al, $cand, 2) === 0) {
+            return $lang = $cand;
+        }
     }
     // 4) Standard
     return $lang = 'de';
 }
 
 // Übersetzungshelfer: gibt je nach aktueller Sprache den passenden Text zurück.
+// de/en stehen inline an der Textstelle; fr/es kommen aus dem Wörterbuch
+// (app/api/lang/<lang>.php), nachgeschlagen über den DEUTSCHEN Quelltext als
+// Schlüssel. Fehlt ein Eintrag, wird Deutsch gezeigt (sicherer Rückfall) —
+// so lassen sich fr/es schrittweise ergänzen, ohne dass etwas bricht.
 function L(string $de, string $en): string
 {
-    return tl_lang() === 'en' ? $en : $de;
+    $lang = tl_lang();
+    if ($lang === 'en') {
+        return $en;
+    }
+    if ($lang === 'de') {
+        return $de;
+    }
+    $tr = tl_translations($lang);
+    return $tr[$de] ?? $de;
 }
 
 // Spracheinstellung im Cookie ablegen (1 Jahr). Nicht httponly, damit die
@@ -110,4 +144,33 @@ function tl_lang_switch_url(string $to): string
     parse_str((string) parse_url($uri, PHP_URL_QUERY), $q);
     $q['lang'] = $to;
     return $path . '?' . http_build_query($q);
+}
+
+// Sprachumschalter als HTML (aktuelle Sprache fett, übrige als Link).
+// Zwei Varianten, je nach Seitentyp:
+//  - …_links():   öffentliche Seiten ohne Konto → Link mit ?lang=… (Cookie).
+//  - …_setlang(): angemeldete Seiten → data-setlang (JS → users.lang). Braucht
+//                 das data-setlang-JS auf der Seite (Dashboard/Admin haben es).
+function tl_lang_switcher_links(): string
+{
+    $cur = tl_lang();
+    $parts = [];
+    foreach (tl_lang_names() as $code => $label) {
+        $parts[] = $code === $cur
+            ? '<strong>' . $label . '</strong>'
+            : '<a href="' . htmlspecialchars(tl_lang_switch_url($code), ENT_QUOTES) . '">' . $label . '</a>';
+    }
+    return implode(' · ', $parts);
+}
+
+function tl_lang_switcher_setlang(): string
+{
+    $cur = tl_lang();
+    $parts = [];
+    foreach (tl_lang_names() as $code => $label) {
+        $parts[] = $code === $cur
+            ? '<strong>' . $label . '</strong>'
+            : '<a href="#" data-setlang="' . $code . '">' . $label . '</a>';
+    }
+    return implode(' · ', $parts);
 }

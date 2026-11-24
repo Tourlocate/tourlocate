@@ -50,7 +50,7 @@ try {
   <div class="card">
     <div class="topbar">
       <h1 style="margin:0"><?= L('Serverregeln', 'Server rules') ?></h1>
-      <a href="<?= htmlspecialchars(tl_lang_switch_url(tl_lang() === 'de' ? 'en' : 'de'), ENT_QUOTES) ?>" style="font-size:13px;color:#888;text-decoration:none"><?= tl_lang() === 'de' ? 'EN' : 'DE' ?></a>
+      <span style="font-size:13px;color:#888"><?= tl_lang_switcher_links() ?></span>
     </div>
 <?php if (tl_lang() === 'en'): ?>
     <p class="note">This English text is an informal translation. The legally binding version of these rules is the German one.</p>
