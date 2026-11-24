@@ -9,8 +9,15 @@
 services:
   tourlocate:
     build: .
-    # Alternativ, falls das Image z. B. über eine GitHub-Container-
-    # Registry bezogen wird, statt "build:" einfach "image: …" setzen.
+    # Alternativ (empfohlen für Portainer): das von der CI gebaute Image ZIEHEN
+    # statt es auf dem Server zu bauen — dazu „build: ." oben auskommentieren
+    # und die folgende Zeile aktivieren. „:latest" = neuester main-Stand; für
+    # kontrollierten Betrieb lieber einen festen Versions-Tag pinnen
+    # (z. B. ghcr.io/tourlocate/tourlocate:v1.0.0), dann bestimmst du selbst,
+    # wann Produktiv auf einen neuen Stand springt (und kannst zurückrollen).
+    # Das GHCR-Paket muss einmalig auf „public" gestellt sein (siehe
+    # .github/workflows/docker-image.yml).
+    #image: ghcr.io/tourlocate/tourlocate:latest
     ports:
       - "8080:80"
     volumes:
