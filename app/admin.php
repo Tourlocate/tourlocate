@@ -62,7 +62,7 @@ $csrf = csrf_token();
     <strong>Tourlocate — <?= L('Administration', 'Administration') ?></strong>
   </div>
   <div class="bar-right">
-    <span class="lang"><?php if (tl_lang() === 'en'): ?><a href="#" data-setlang="de">DE</a> · <strong>EN</strong><?php else: ?><strong>DE</strong> · <a href="#" data-setlang="en">EN</a><?php endif; ?></span>
+    <span class="lang"><?= tl_lang_switcher_setlang() ?></span>
     <a class="plain" href="dashboard.php"><?= L('Zum Dashboard', 'To the dashboard') ?></a>
   </div>
 </div>

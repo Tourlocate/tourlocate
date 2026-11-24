@@ -153,7 +153,7 @@ $locale = tl_lang() === 'en' ? 'en-GB' : 'de-DE';
 <div id="bar">
   <img src="../img/logo.png" alt="" onerror="this.style.display='none'">
   <strong style="flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= htmlspecialchars($P['title'], ENT_QUOTES) ?></strong>
-  <a href="<?= htmlspecialchars(tl_lang_switch_url(tl_lang() === 'de' ? 'en' : 'de'), ENT_QUOTES) ?>" style="font-size:12px;color:#888;white-space:nowrap"><?= tl_lang() === 'de' ? 'EN' : 'DE' ?></a>
+  <span style="font-size:12px;color:#888;white-space:nowrap"><?= tl_lang_switcher_links() ?></span>
   <a href="#" id="reportLink" style="font-size:12px;color:#888;white-space:nowrap"><?= L('Inhalt melden', 'Report content') ?></a>
   <a href="impressum.php" style="font-size:12px;color:#888;white-space:nowrap"><?= L('Impressum', 'Imprint') ?></a>
 </div>
