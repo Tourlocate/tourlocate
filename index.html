@@ -76,6 +76,7 @@
        auf /app/ um, in der angemeldeten App ist ?app gesetzt → Banner aus. -->
   <div id="tl-demo-banner" style="display:none">
     <span data-i18n="demoBannerText">Demoversion — ohne Konto, Touren werden nicht gespeichert.</span>
+    <a href="app/" id="tl-demo-login" style="display:none" data-i18n="demoBannerLogin">Zur Vollversion anmelden</a>
     <a href="vergleich.html" data-i18n="demoBannerCompare">Versionsvergleich</a>
     <a href="https://github.com/Tourlocate/tourlocate" target="_blank" rel="noopener"
        data-i18n="demoBannerLink">Vollversion-Download &amp; Quellcode</a>
@@ -87,6 +88,12 @@
     try { if (!/[?&]app(=|&|$)/.test(location.search)) {
       document.getElementById('tl-demo-banner').style.display = '';
       document.body.classList.add('tl-demo');
+      /* Auf einer echten Server-Instanz (nicht GitHub-Pages-Demo, nicht
+         file://) zusätzlich den Link zur servereigenen /app/-Vollversion
+         zeigen — dort gibt es ein /app/, auf github.io nicht. */
+      if (/^https?:$/.test(location.protocol) && !/(^|\.)github\.io$/i.test(location.hostname)) {
+        document.getElementById('tl-demo-login').style.display = '';
+      }
     } } catch(e){}
   </script>
 
